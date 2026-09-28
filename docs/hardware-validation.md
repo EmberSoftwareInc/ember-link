@@ -1,4 +1,4 @@
-# Hardware validation still required
+# Hardware validation and remaining coverage
 
 This iteration builds for ESP32-S3 and has host tests. Initial physical USB,
 Wi-Fi, and shared file-writer smoke tests passed on one dongle; see the
@@ -34,8 +34,8 @@ Physical cloud update, corruption rejection, and rollback outcomes are recorded
 in the [original OTA report](hardware-ota-test-2026-09-28.md). The latest local
 updater and recovery qualification is tracked in the
 [release qualification report](release-qualification-2026-09-28.md). Historical
-reports describe the builds tested at that time; they are not approval of the
-current release candidate.
+reports describe the builds tested at that time. The release qualification
+report records the exact production-signed 0.3.5 artifact and stable publication.
 
 ## Machine integration status
 
@@ -46,9 +46,9 @@ recognized the device and previewed a newly cloud-delivered design; see
 Wi-Fi sending and replacement were also physically previewed on that machine.
 The screen and LED settings were tested on later development builds.
 
-This closes the earlier storage-only integration task. It does not establish
-broad machine compatibility or qualify the exact current release artifact.
-Repeat machine preview, update/recovery, and settings/file-preservation checks
-on the candidate before publishing a stable release. Interrupted cloud downloads,
-boot-selection power loss, missing/full cards, and sustained reliability remain
-separate qualification requirements.
+The exact production-signed 0.3.5 release subsequently passed Brother NQ1700E
+preview, guided Wi-Fi/USB updates, cloud update recovery, missing/full-card checks,
+and settings/file preservation. See the release qualification report for the
+physical power-cut results and bounded polling sample. Broad machine compatibility,
+production staging integration, manufacturing qualification, and multi-day endurance
+testing remain additional coverage; they are not implied by this prototype result.
