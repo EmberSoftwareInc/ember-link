@@ -1,8 +1,8 @@
 # Release qualification — 2026-09-28
 
-Status: in progress. No firmware release has been published. Tests use one
-LilyGO T-Dongle-S3 development unit, the existing development signing key, and
-its FAT32 card. Neither production AWS nor the web app repository is involved.
+Status: in progress. No stable firmware release has been published. Tests use
+one LilyGO T-Dongle-S3 prototype and its FAT32 card. Initial trials used the
+development key; the stable candidate now uses the separate production key. Neither production AWS nor the web app repository is involved.
 Existing root design files were privately backed up and hashed before updates.
 
 ## Completed checks
@@ -92,3 +92,38 @@ responsive on this exact release candidate. No stitching was initiated.
 - Qualify Bridge installers and signed app upgrades on macOS, Windows, and Linux.
   All three cross-platform draft installer builds succeeded; no app update has
   been published by this work.
+
+## Stable-publication follow-up
+
+The owner confirmed no customer units have shipped. A separate RSA-3072
+production key and verified private recovery copy have been created. Only the
+public verification key is stored in the repository. Candidate 0.3.5 is built and signature-verified. The prototype was provisioned
+with the production key through an application-only USB recovery flash, then
+updated to the exact 0.3.5 binary over the isolated cloud HTTPS path. The boot
+confirmed in the other slot and the service received an `installed` receipt.
+SHA-256: `364167c2b7ba87658972d040c26ea5a1e154807ea9fefcd252c145a079b46cca`.
+
+The owner intentionally removed ELCHECK.PES and RC035.PES after preview testing.
+Those deletions are not data loss. The remaining original design matches the
+saved backup hash and the FAT32 filesystem check passed.
+
+Using an isolated HTTPS service and disposable test credentials, physical power
+loss after 64 KiB of a cloud firmware write returned to the same confirmed
+image/slot and delivered `failed/interrupted` to the service. Power loss after
+signature verification and journal persistence, before boot selection, also
+returned to the healthy slot and delivered `rolled_back/boot_not_confirmed`.
+Download requests did not carry the device's Authorization header.
+
+An initial diagnostic HTTP status hook could settle the journal while the cloud
+worker was paused. Production serial/cloud status is protected by the session
+mutex; this was a fixture defect, not a production fix. That trial was excluded,
+and the boot-selection check was repeated with passive diagnostics. The corrected pending-boot test also passed: the image and journal were both
+pending before power loss; within the 300-second diagnostic operator window,
+power loss returned to the previous healthy slot (reset reason 1) and delivered
+`rolled_back/boot_not_confirmed`. The production 90-second automatic guard had
+already been qualified separately. All diagnostic builds remain private.
+
+A dual-signed key-transition trial was rejected without changing the running
+image. SDK inspection confirmed that signed updates without eFuse secure boot
+verify only the first signature block/digest. Production-key provisioning uses
+physical USB recovery; see [signing](production-signing.md).

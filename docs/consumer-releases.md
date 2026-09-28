@@ -1,6 +1,6 @@
 # Publishing firmware for Bridge and the Ember web app
 
-Link 0.3.5-rc1 (introduced in 0.3.5-dev) reports the same public board/layout/signing-key compatibility
+Link 0.3.5 (introduced in 0.3.5-dev) reports the same public board/layout/signing-key compatibility
 metadata over USB `info` and authenticated `GET /api/update` that cloud polls
 already report. No cloud enrollment is needed for local discovery or installation.
 Local compatibility reporting includes no cloud receipts or credentials. A Bridge
@@ -67,15 +67,13 @@ or production signing keys were added to CI.
 
 ## Qualification status
 
-The 0.3.5-dev build and native regressions passed, and its real signed image was
-accepted by manifest generation, catalog generation and the cloud publisher's dry
-run. Nothing was published or flashed during the consumer updater implementation.
-USB capabilities and local Wi-Fi updates need hardware qualification on this build.
-The older watchdog observation and interrupted-power tests in
-`hardware-ota-test-2026-09-28.md` remain open release gates. Do not claim a production
-or physical update has passed solely from the software tests.
-
-The current `0.3.5-rc1` release candidate adds the rollback guard stack fix.
 See [release qualification](release-qualification-2026-09-28.md) for measured
-results and outstanding gates. Development-key candidates and private/draft
-GitHub assets must not be presented as an available production update.
+hardware results and remaining publication checks. The production-signed 0.3.5
+candidate has passed a real cloud HTTPS installation and healthy boot. Cloud
+recovery tests use an isolated local service, not production AWS. Public catalog
+and complete guided Bridge update checks are still in progress.
+
+See [production signing](production-signing.md) for the public key and the
+verified SDK limitation on key rotation. Development-key prototypes require USB
+recovery to establish production trust; ordinary production updates use the
+same production key. Private/draft release assets are not publicly available.
