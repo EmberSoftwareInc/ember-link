@@ -1,0 +1,44 @@
+idf_component_register(
+    SRCS
+        "main.c"
+        "display.c"
+        "display_settings.c"
+        "display_state.c"
+        "display_render.c"
+        "cloud.c"
+        "firmware_update.c"
+        "cloud_settings.c"
+        "cloud_protocol.c"
+        "link_protocol.c"
+        "link_files.c"
+        "operation.c"
+        "auth.c"
+        "device_name.c"
+        "led.c"
+        "storage.c"
+        "usb_setup.c"
+        "usb_mode.c"
+        "usb_mode_state.c"
+        "wifi_mgr.c"
+        "dns_hijack.c"
+        "http_api.c"
+        "discovery.c"
+        "ota.c"
+    INCLUDE_DIRS "."
+    REQUIRES
+        app_update
+        driver
+        esp_driver_ledc
+        esp_app_format
+        esp_event
+        esp_http_client
+        mbedtls
+        esp_http_server
+        esp_netif
+        esp_timer
+        esp_wifi
+        fatfs
+        lwip
+        nvs_flash
+        sdmmc
+)

@@ -1,0 +1,18 @@
+firmware/build/
+firmware/.cache/
+# OTA signing key — NEVER commit; losing it means fielded dongles can't be
+# updated over WiFi (USB reflash still works). Keep an offline backup.
+firmware/keys/
+firmware/sdkconfig
+firmware/sdkconfig.old
+firmware/managed_components/
+.DS_Store
+
+# Local device/cloud provisioning and host test artifacts
+.env
+.env.*
+*.pem
+*.key
+__pycache__/
+*.pyc
+artifacts/

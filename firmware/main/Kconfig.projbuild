@@ -1,0 +1,9 @@
+menu "Ember Link display"
+config LINK_DISPLAY_FLIP
+    bool "Default status display to 180 degrees"
+    default n
+    help
+        Initial/factory-reset orientation for upside-down machine USB ports.
+        A saved Bridge/web setup preference takes precedence.
+        This changes display orientation only; USB and button behavior are unchanged.
+endmenu

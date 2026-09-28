@@ -1,0 +1,7 @@
+dependencies:
+  idf: "==6.0.2"
+  espressif/cjson: "^1.7"
+  espressif/esp_tinyusb: "^2.0.1~1"
+  espressif/mdns: "^1.2"
+  # Keep the USB stack used by the physical Brother compatibility baseline.
+  espressif/tinyusb: "==0.19.0~3"
