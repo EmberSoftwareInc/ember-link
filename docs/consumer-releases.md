@@ -1,6 +1,6 @@
 # Publishing firmware for Bridge and the Ember web app
 
-Link 0.3.5-dev reports the same public board/layout/signing-key compatibility
+Link 0.3.5 (introduced in 0.3.5-dev) reports the same public board/layout/signing-key compatibility
 metadata over USB `info` and authenticated `GET /api/update` that cloud polls
 already report. No cloud enrollment is needed for local discovery or installation.
 Local compatibility reporting includes no cloud receipts or credentials. A Bridge
@@ -24,7 +24,8 @@ python tools/release_catalog.py --manifest /tmp/link-035.json \
   --output /tmp/link-releases.json
 ```
 
-The URL/tag/version here is an example, not a published release. Each distinct
+These URLs identify the published 0.3.5 release. For a new release, change the
+version, release ID and tag together. Each distinct
 artifact needs a unique version and release ID. The manifest tool cryptographically
 verifies the image using the public key. The catalog tool validates and combines
 manifests; it does not sign or publish. Repeat `--manifest` for other signing-key
@@ -67,10 +68,14 @@ or production signing keys were added to CI.
 
 ## Qualification status
 
-The 0.3.5-dev build and native regressions passed, and its real signed image was
-accepted by manifest generation, catalog generation and the cloud publisher's dry
-run. Nothing was published or flashed during the consumer updater implementation.
-USB capabilities and local Wi-Fi updates need hardware qualification on this build.
-The older watchdog observation and interrupted-power tests in
-`hardware-ota-test-2026-09-28.md` remain open release gates. Do not claim a production
-or physical update has passed solely from the software tests.
+See [release qualification](release-qualification-2026-09-28.md) for measured
+hardware results. Production-signed 0.3.5 is published as stable and passed
+cloud HTTPS installation, guided Bridge Wi-Fi/USB installation, healthy-boot
+confirmation, physical recovery checks, and Brother design preview. Cloud recovery
+tests used an isolated local service, not production AWS. Public latest-release
+endpoints were verified against the exact qualified artifacts.
+
+See [production signing](production-signing.md) for the public key and the
+verified SDK limitation on key rotation. Development-key prototypes require USB
+recovery to establish production trust; ordinary production updates use the
+same production key. Private/draft release assets are not publicly available.

@@ -236,6 +236,9 @@ esp_err_t ota_start_boot_guard(void)
     ota_status_t status;
     ota_get_status(&status);
     if (!status.pending_verify) return ESP_OK;
-    return xTaskCreate(boot_guard, "ota_health", 3072, NULL, 5, NULL) == pdPASS
+    // Rollback verifies the previous signed image before selecting it. That
+    // verification needs more stack than a sleeping timer: 3 KiB caused an
+    // interrupt-watchdog reset on hardware; 8 KiB completed a software reboot.
+    return xTaskCreate(boot_guard, "ota_health", 8192, NULL, 5, NULL) == pdPASS
         ? ESP_OK : ESP_ERR_NO_MEM;
 }
