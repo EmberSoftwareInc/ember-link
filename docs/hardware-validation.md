@@ -31,22 +31,24 @@ hardware reliability scenarios still need qualification. Remote file management
 remains separate feature work.
 
 Physical cloud update, corruption rejection, and rollback outcomes are recorded
-in the [2026-09-28 OTA test report](hardware-ota-test-2026-09-28.md). A watchdog
-reset observed around rollback and the unqualified interrupted-download test
-remain release follow-ups.
+in the [original OTA report](hardware-ota-test-2026-09-28.md). The latest local
+updater and recovery qualification is tracked in the
+[release qualification report](release-qualification-2026-09-28.md). Historical
+reports describe the builds tested at that time; they are not approval of the
+current release candidate.
 
-**Working machine baseline found:** the Brother NQ1700E recognizes the card and
-opens the original design preview with the isolated EmberConnect
-`0.5.1-msctest1` storage-only USB profile and a freshly formatted FAT32 card.
-The same profile avoided the freeze on the original FAT16 card, but the Brother
-reported unusable media. See the OTA report for the complete comparison and its
-causal limits. This is one machine/one card and a preview check, not a stitching
-or broad compatibility qualification.
+## Machine integration status
 
-**Release blocker remains for Link integration:** the successful firmware is an
-EmberConnect diagnostic build, not cloud-enabled Ember Link. Integrate a
-machine-compatible storage-only profile while retaining an explicit USB serial
-setup path, update consumer setup guidance, and validate cloud delivery and USB
-reconnect/preview on the Brother with the integrated image. Do not remove USB
-setup as a product feature or claim current production Link is qualified from
-this diagnostic result.
+The earlier EmberConnect storage-only/FAT32 diagnostic baseline was subsequently
+integrated into cloud-enabled Ember Link. On `0.3.2-dev`, the Brother NQ1700E
+recognized the device and previewed a newly cloud-delivered design; see
+[USB modes and machine results](hardware-usb-modes-2026-09-28.md). Bridge local
+Wi-Fi sending and replacement were also physically previewed on that machine.
+The screen and LED settings were tested on later development builds.
+
+This closes the earlier storage-only integration task. It does not establish
+broad machine compatibility or qualify the exact current release artifact.
+Repeat machine preview, update/recovery, and settings/file-preservation checks
+on the candidate before publishing a stable release. Interrupted cloud downloads,
+boot-selection power loss, missing/full cards, and sustained reliability remain
+separate qualification requirements.

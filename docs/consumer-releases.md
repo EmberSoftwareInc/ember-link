@@ -1,6 +1,6 @@
 # Publishing firmware for Bridge and the Ember web app
 
-Link 0.3.5-dev reports the same public board/layout/signing-key compatibility
+Link 0.3.5-rc1 (introduced in 0.3.5-dev) reports the same public board/layout/signing-key compatibility
 metadata over USB `info` and authenticated `GET /api/update` that cloud polls
 already report. No cloud enrollment is needed for local discovery or installation.
 Local compatibility reporting includes no cloud receipts or credentials. A Bridge
@@ -74,3 +74,8 @@ USB capabilities and local Wi-Fi updates need hardware qualification on this bui
 The older watchdog observation and interrupted-power tests in
 `hardware-ota-test-2026-09-28.md` remain open release gates. Do not claim a production
 or physical update has passed solely from the software tests.
+
+The current `0.3.5-rc1` release candidate adds the rollback guard stack fix.
+See [release qualification](release-qualification-2026-09-28.md) for measured
+results and outstanding gates. Development-key candidates and private/draft
+GitHub assets must not be presented as an available production update.
