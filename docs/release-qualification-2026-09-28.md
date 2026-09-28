@@ -1,6 +1,7 @@
 # Release qualification — 2026-09-28
 
-Status: in progress. No stable firmware release has been published. Tests use
+Status: complete for stable publication. Ember Link 0.3.5 is published as the
+latest stable release. Tests use
 one LilyGO T-Dongle-S3 prototype and its FAT32 card. Initial trials used the
 development key; the stable candidate now uses the separate production key. Neither production AWS nor the web app repository is involved.
 Existing root design files were privately backed up and hashed before updates.
@@ -11,8 +12,8 @@ Existing root design files were privately backed up and hashed before updates.
   `0.3.4-dev`. Bridge reported a successful restart; independent authenticated
   status confirmed the same device, the other OTA slot, and `pendingVerify:false`.
 - The new board/layout/key compatibility fields are available through the local
-  firmware endpoint. Guided catalog delivery is not yet qualified: the firmware
-  repository remains private and has no public latest catalog.
+  firmware endpoint. Guided catalog delivery was subsequently qualified against
+  the public production-signed candidate, as recorded below.
 - Local Wi-Fi rejected wrong-format, truncated, corrupt, and unrelated-key signed
   images. The confirmed running version/slot did not change. An incomplete
   upload disconnected after 64 KiB also left the running image intact.
@@ -46,7 +47,7 @@ The 8,192-byte task had 4,388 bytes remaining after verification: approximately
 3,804 bytes had been used, exceeding the original 3,072-byte allocation.
 Production retains the normal SDK rollback-and-reboot helper with an 8 KiB stack.
 
-The source candidate is `0.3.5-rc1`, with the 8 KiB guard stack and no QA hooks.
+The initial source candidate was `0.3.5-rc1`, with the 8 KiB guard stack and no QA hooks.
 Diagnostic images are temporary test artifacts and must never be released.
 
 ## Physical power interruption during USB upload
@@ -77,21 +78,6 @@ Wi-Fi and read back byte-for-byte through USB storage. Its SHA-256 is
 No existing file was overwritten. The card was safely unmounted before moving Link to the Brother NQ1700E.
 The user confirmed that the square previews correctly and the machine remains
 responsive on this exact release candidate. No stitching was initiated.
-
-## Still required before stable publication
-
-- Complete power-interruption checks at the other update boundaries.
-- Qualify the complete guided Bridge Wi-Fi and USB update flows using a public
-  catalog, including failure and reboot confirmation.
-- Complete interrupted cloud download/journal and boot-selection power-loss
-  checks, missing/full-card checks, and a longer reliability run.
-- Select and back up the production signing key; qualify the production-signed
-  artifact. These development-key tests are not manufacturing approval.
-- Provide a public account-free firmware distribution location. Publishing a
-  draft/private release does not make Bridge's configured public feed usable.
-- Qualify Bridge installers and signed app upgrades on macOS, Windows, and Linux.
-  All three cross-platform draft installer builds succeeded; no app update has
-  been published by this work.
 
 ## Stable-publication follow-up
 
@@ -127,3 +113,52 @@ A dual-signed key-transition trial was rejected without changing the running
 image. SDK inspection confirmed that signed updates without eFuse secure boot
 verify only the first signature block/digest. Production-key provisioning uses
 physical USB recovery; see [signing](production-signing.md).
+
+The exact production 0.3.5 image rejected a development-key update with
+`invalid_signature`; the confirmed running version and slot were unchanged.
+Anonymous downloads of the public prerelease catalog and image matched the
+qualified SHA-256 exactly. The same immutable assets were promoted to the latest stable release after qualification.
+
+## Public guided delivery and storage checks
+
+Both guided Bridge update paths passed against the public 0.3.5 prerelease:
+local Wi-Fi and USB. Bridge downloaded the immutable public catalog/image,
+installed it, and displayed successful healthy-boot confirmation. Independent
+inspection confirmed version 0.3.5, a changed OTA slot, and no pending boot
+verification. Each path began on a separately versioned, production-key baseline.
+The private Bridge qualification build changed only the catalog URL from the
+standard latest-release URL to the prerelease's immutable tag URL. No such
+fixture change is included in the Bridge release.
+
+A temporary filler left approximately 32 KiB free on the FAT32 card. An 80,008-byte
+upload failed with `insufficient_storage`, with no partial target file and the
+original design intact. The filler was removed; filesystem verification passed.
+A new generated EL035.PES square was uploaded and read back byte-for-byte, with
+the same square SHA-256 recorded above. The original design still matched its
+private backup, and intentionally deleted test files were not restored.
+
+The isolated service recorded 360 polls across approximately 63 minutes of
+qualification, including intentional firmware installations and resets. A separate
+bounded uninterrupted sample covered 94 polls over 782 seconds. This is not a
+multi-day endurance qualification. All six signed-image download requests omitted
+the device Authorization header. The disposable cloud polling profile was disabled
+after testing; saved local Wi-Fi, pairing, and device identity were retained.
+
+Bridge 0.5.1's signed upgrades and application startup passed on macOS, Linux
+AppImage, Windows NSIS, and Windows MSI. See the Bridge qualification document
+for the harness scope and platform-specific observations.
+
+## Final physical checks and publication
+
+With the card removed while unplugged, the owner confirmed that Link displayed
+its missing-card warning. After reinserting the card while unplugged and moving
+Link to the Brother NQ1700E, the owner confirmed EL035.PES previewed as a square
+and the machine remained responsive. This was the exact production-signed 0.3.5
+image. No stitching was initiated.
+
+[Ember Link 0.3.5](https://github.com/EmberSoftwareInc/ember-link/releases/tag/v0.3.5)
+and [Ember Bridge 0.5.1](https://github.com/EmberSoftwareInc/ember-bridge/releases/tag/v0.5.1)
+are published as stable. Anonymous latest-release downloads returned the qualified
+Link catalog/image and Bridge updater feed byte-for-byte (JSON-equivalent for the
+Bridge feed). All Bridge platform entries point to immutable 0.5.1 assets.
+Production AWS deployment and web app changes remain outside this work.

@@ -24,7 +24,8 @@ python tools/release_catalog.py --manifest /tmp/link-035.json \
   --output /tmp/link-releases.json
 ```
 
-The URL/tag/version here is an example, not a published release. Each distinct
+These URLs identify the published 0.3.5 release. For a new release, change the
+version, release ID and tag together. Each distinct
 artifact needs a unique version and release ID. The manifest tool cryptographically
 verifies the image using the public key. The catalog tool validates and combines
 manifests; it does not sign or publish. Repeat `--manifest` for other signing-key
@@ -68,10 +69,11 @@ or production signing keys were added to CI.
 ## Qualification status
 
 See [release qualification](release-qualification-2026-09-28.md) for measured
-hardware results and remaining publication checks. The production-signed 0.3.5
-candidate has passed a real cloud HTTPS installation and healthy boot. Cloud
-recovery tests use an isolated local service, not production AWS. Public catalog
-and complete guided Bridge update checks are still in progress.
+hardware results. Production-signed 0.3.5 is published as stable and passed
+cloud HTTPS installation, guided Bridge Wi-Fi/USB installation, healthy-boot
+confirmation, physical recovery checks, and Brother design preview. Cloud recovery
+tests used an isolated local service, not production AWS. Public latest-release
+endpoints were verified against the exact qualified artifacts.
 
 See [production signing](production-signing.md) for the public key and the
 verified SDK limitation on key rotation. Development-key prototypes require USB
