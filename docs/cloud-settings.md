@@ -1,6 +1,6 @@
 # Cloud screen and LED settings — protocol extension v1
 
-Implemented in development firmware `0.3.6-dev` on
+Implemented in development firmware `0.3.6` on
 `feature/cloud-based-settings-updates`. This is a firmware extension to the
 existing authenticated HTTPS poll, not a new endpoint or transport. Production
 backend and browser/example changes are separate work; none are made by this
@@ -165,8 +165,9 @@ zero. The legacy blob is left untouched, as are the frozen cloud/OTA blobs. An
 older firmware rollback therefore sees its **pre-upgrade preferences**, not the
 new cloud-adjusted ones. Returning to this firmware resumes the new journal;
 settings changed while running old firmware are not merged. Backends must stop
-settings offers whenever capability reporting disappears. This branch has not
-been flashed or qualified for physical rollback.
+settings offers whenever capability reporting disappears. The feature was tested on a physical prototype, including cloud writes and
+independent USB readback. Physical downgrade/rollback of the new settings journal
+has not been qualified.
 
 ## Validation
 
@@ -184,6 +185,10 @@ the journal write/receipt acknowledgement. Verify the Brother stays responsive.
 A host test or successful ESP-IDF build does not replace these checks.
 
 Local verification: all eight native sanitizer suites and both Python release
-catalog tests passed. An isolated ESP-IDF 6.0.2 ESP32-S3 build passed using a
-temporary development signing key, leaving the stable build and production key
-unchanged. No hardware was flashed or cloud service deployed.
+catalog tests passed. The production-signed `0.3.6-dev` prototype build passed
+cloud screen/LED/orientation writes and independent USB readback, then restored
+the original settings with a second confirmed cloud request. The reference backend
+and UI passed 42 Python and 27 Node tests, including browser conflict handling.
+These tests used a disposable local backend and HTTPS tunnel; production AWS was
+not deployed. Stable-binary qualification and hashes are recorded in the 0.3.6
+release notes.

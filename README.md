@@ -6,8 +6,8 @@ its card as USB mass storage to an embroidery machine.
 
 This repository starts from EmberConnect and develops the new Ember Link
 product. This iteration focuses on **cloud transfer and browser setup**. The project/image name
-is `ember-link`, the display name is `Ember Link`, and the development version
-is `0.3.6-dev`. Legacy firmware/Bridge identity compatibility is not preserved.
+is `ember-link`, the display name is `Ember Link`, and the firmware version
+is `0.3.6`. Legacy firmware/Bridge identity compatibility is not preserved.
 
 See the [0.3.2-dev validation record](docs/hardware-usb-modes-2026-09-28.md) for
 the current USB-mode integration checks and remaining hardware qualification.
@@ -32,10 +32,12 @@ and firmware updates. It dims after 30 seconds of inactivity. Bridge and web USB
 setup can save screen on/off, normal/upside-down orientation, and status LED on/off. See
 [status display](docs/status-display.md) for messages, rotation, and validation limits.
 
-Development firmware `0.3.6-dev` also accepts these settings through the existing
+Firmware `0.3.6` also accepts these settings through the existing
 cloud poll, with persisted revisions and receipts to protect newer USB changes.
 See [cloud settings](docs/cloud-settings.md) for the backend contract and rollout
-requirements. This branch adds firmware support; backend/browser work is separate.
+requirements. A working backend/browser reference is available in the private
+`EmberSoftwareInc/ember-link-cloud-example` repository. Production cloud rollout
+remains a separate deployment.
 
 ## Current implementation
 
