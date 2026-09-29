@@ -6,8 +6,9 @@ its card as USB mass storage to an embroidery machine.
 
 This repository starts from EmberConnect and develops the new Ember Link
 product. This iteration focuses on **cloud transfer and browser setup**. The project/image name
-is `ember-link`, the display name is `Ember Link`, and the firmware version
-is `0.3.6`. Legacy firmware/Bridge identity compatibility is not preserved.
+is `ember-link` and the display name is `Ember Link`. The current branch's version
+is defined in [app_version.h](firmware/main/app_version.h). Legacy firmware/Bridge
+identity compatibility is not preserved.
 
 See the [0.3.2-dev validation record](docs/hardware-usb-modes-2026-09-28.md) for
 the current USB-mode integration checks and remaining hardware qualification.
