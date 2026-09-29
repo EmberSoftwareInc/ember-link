@@ -75,7 +75,7 @@ static esp_err_t panel_init(void) {
     gpio_set_level(BOARD_LCD_RST_PIN,1); vTaskDelay(pdMS_TO_TICKS(150));
     TRY(command(0x01,NULL,0)); vTaskDelay(pdMS_TO_TICKS(150));
     TRY(command(0x11,NULL,0)); vTaskDelay(pdMS_TO_TICKS(120));
-    // Panel register values from LilyGO's factory example (MIT; see third_party).
+    // Panel register values from LilyGO's factory example (MIT; see THIRD_PARTY_NOTICES.md).
     static const struct { uint8_t cmd, len, data[16]; } init[]={
       {0xb1,3,{5,0x3a,0x3a}},{0xb2,3,{5,0x3a,0x3a}},{0xb3,6,{5,0x3a,0x3a,5,0x3a,0x3a}},
       {0xb4,1,{3}},{0xc0,3,{0x62,2,4}},{0xc1,1,{0xc0}},{0xc2,2,{0x0d,0}},
