@@ -2,7 +2,10 @@
 
 Implemented cloud-transfer and USB account-setup contract. The matching backend,
 enrollment and account website are implemented in the separate `ember-app` repo.
-Firmware supports **download jobs only**.
+Cloud file jobs support downloads. Firmware updates and the additive
+[screen/LED settings extension](cloud-settings.md) use separate poll fields.
+Cloud settings require `settingsProtocolVersion:1` (development firmware
+`0.3.6-dev`); the backend integration for that extension is separate work.
 
 ## Configuration and trust
 

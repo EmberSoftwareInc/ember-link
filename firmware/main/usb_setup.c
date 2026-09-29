@@ -1,5 +1,6 @@
 #include "firmware_update.h"
 #include "display.h"
+#include "display_cloud.h"
 #include "usb_setup.h"
 
 #include <string.h>
@@ -167,15 +168,6 @@ static void reboot_later(void *arg)
     esp_restart();
 }
 
-static void add_display_settings(cJSON *body)
-{
-    display_settings_t settings = display_get_settings();
-    cJSON *display = cJSON_AddObjectToObject(body, "display");
-    cJSON_AddBoolToObject(display, "enabled", settings.enabled);
-    cJSON_AddNumberToObject(display, "rotation", settings.rotation);
-    cJSON_AddBoolToObject(display, "ledEnabled", settings.led_enabled);
-}
-
 static void cmd_set_display(const cJSON *request)
 {
     const cJSON *enabled = cJSON_GetObjectItemCaseSensitive(request, "enabled");
@@ -195,7 +187,7 @@ static void cmd_set_display(const cJSON *request)
     operation_end();
     if (err != ESP_OK) { reply_error(request, "storage_error", "could not save display settings"); return; }
     cJSON *body = response_for(request, true);
-    add_display_settings(body);
+    display_settings_add_json(body);
     send_line(body);
 }
 
@@ -211,7 +203,7 @@ static void cmd_info(const cJSON *request)
     ota_get_status(&st);
 
     cJSON *body = response_for(request, true);
-    add_display_settings(body);
+    display_settings_add_json(body);
     cJSON_AddStringToObject(body, "name", EMBER_LINK_NAME);
     cJSON_AddStringToObject(body, "deviceName", name);
     cJSON_AddStringToObject(body, "version", EMBER_LINK_VERSION);

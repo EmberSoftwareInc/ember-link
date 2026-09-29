@@ -34,7 +34,9 @@ def main():
         run(tmp / "usb_mode")
         run(cc, *flags, MAIN / "display_state.c", MAIN / "display_render.c", TEST / "test_display.c", "-o", tmp / "display")
         run(tmp / "display")
-        run(cc, *flags, MAIN / "display_settings.c", TEST / "test_display_settings.c", "-o", tmp / "display_settings")
+        run(cc, *flags, "-I", CJSON, MAIN / "display_settings.c", MAIN / "display_cloud.c",
+            MAIN / "link_protocol.c", MAIN / "cloud_protocol.c", tmp / "cjson.o",
+            TEST / "test_display_settings.c", "-lm", "-o", tmp / "display_settings")
         run(tmp / "display_settings")
         run(cc, *flags, MAIN / "led.c", TEST / "test_led.c", "-o", tmp / "led")
         run(tmp / "led")
@@ -44,7 +46,7 @@ def main():
             *crypto, "-lm", "-o", tmp / "files")
         run(tmp / "files")
         run(cc, *flags, "-I", CJSON, MAIN / "link_protocol.c", MAIN / "cloud_protocol.c",
-            tmp / "cjson.o", TEST / "test_cloud.c", *crypto, "-lm", "-o", tmp / "cloud")
+            MAIN / "display_settings.c", MAIN / "display_cloud.c", tmp / "cjson.o", TEST / "test_cloud.c", *crypto, "-lm", "-o", tmp / "cloud")
         run(tmp / "cloud")
         run(cc, *flags, "-I", CJSON, MAIN / "link_protocol.c", MAIN / "cloud_protocol.c",
             tmp / "cjson.o", TEST / "test_updates.c", TEST / "display_stubs.c", *crypto, "-lm", "-o", tmp / "updates")

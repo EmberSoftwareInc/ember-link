@@ -3,6 +3,7 @@ idf_component_register(
         "main.c"
         "display.c"
         "display_settings.c"
+        "display_cloud.c"
         "display_state.c"
         "display_render.c"
         "cloud.c"

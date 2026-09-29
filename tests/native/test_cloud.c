@@ -2,10 +2,11 @@
 // is substituted; parser and state transitions are the production source.
 #include "../../firmware/main/cloud.c"
 #include <assert.h>
+#include "settings_fixture.h"
 
 static cloud_config_t saved_config;
 static link_receipt_t saved_receipt;
-static bool have_config, have_receipt, fail_save, gate;
+static bool have_config, have_receipt, fail_save, gate, update_pending, usb_during_poll;
 static int starts, releases, download_status = 200, api_status = 200;
 static esp_err_t finish_result = ESP_OK, open_result = ESP_OK;
 static char *reply;
@@ -45,6 +46,8 @@ void display_finish(bool success, const char *error)
     ++display_completions;
 }
 void display_cloud(display_cloud_t state) { (void)state; }
+static unsigned settings_applied;
+void display_apply_saved_settings(void) { assert(gate); ++settings_applied; }
 
 SemaphoreHandle_t xSemaphoreCreateMutex(void)
 {
@@ -165,13 +168,14 @@ void link_file_abort(link_file_write_t *w)
 esp_err_t nvs_open(const char *name, int mode, nvs_handle_t *h)
 {
     (void)mode;
+    if (!strcmp(name,"linkdisplay")) { *h=2; return ESP_OK; }
     assert(!strcmp(name, "link_cloud"));
     *h = 1;
     return ESP_OK;
 }
 esp_err_t nvs_set_blob(nvs_handle_t h, const char *key, const void *p, size_t n)
 {
-    (void)h;
+    if (h==2) return settings_write(key,p,n);
     if (fail_save)
         return ESP_FAIL;
     if (!strcmp(key, "config")) {
@@ -187,7 +191,7 @@ esp_err_t nvs_set_blob(nvs_handle_t h, const char *key, const void *p, size_t n)
 }
 esp_err_t nvs_get_blob(nvs_handle_t h, const char *key, void *p, size_t *n)
 {
-    (void)h;
+    if (h==2) return settings_read(key,p,n);
     if (!strcmp(key, "config")) {
         if (!have_config)
             return ESP_ERR_NVS_NOT_FOUND;
@@ -203,7 +207,7 @@ esp_err_t nvs_get_blob(nvs_handle_t h, const char *key, void *p, size_t *n)
 }
 esp_err_t nvs_commit(nvs_handle_t h)
 {
-    (void)h;
+    if (h==2) return settings_commit();
     return ESP_OK;
 }
 void nvs_close(nvs_handle_t h)
@@ -258,6 +262,10 @@ int esp_http_client_get_status_code(esp_http_client_handle_t h)
 }
 int esp_http_client_read(esp_http_client_handle_t h, char *buf, int n)
 {
+    if (h->api && usb_during_poll) {
+        usb_during_poll=false; assert(operation_begin());
+        assert(display_settings_save(display_settings_defaults())==ESP_OK); operation_end();
+    }
     int left = h->len - h->offset;
     if (n > left)
         n = left;
@@ -301,8 +309,66 @@ static void response(const char *id, bool ack)
     cJSON_Delete(o);
 }
 
+static void settings_response(const char *id, uint64_t revision, bool ack, bool claimed, unsigned owner)
+{
+    cJSON *o=cJSON_CreateObject(); cJSON_AddNumberToObject(o,"protocolVersion",1);
+    cJSON_AddBoolToObject(o,"claimed",claimed); cJSON_AddNumberToObject(o,"ownershipGeneration",2);
+    if (ack) {
+        cJSON *poll=cJSON_CreateObject(); display_cloud_add_poll(poll);
+        cJSON_AddItemToObject(o,"settingsAck",cJSON_DetachItemFromObject(poll,"settingsReceipt")); cJSON_Delete(poll);
+    }
+    if (id) {
+        cJSON *c=cJSON_AddObjectToObject(o,"settingsUpdate");
+        cJSON_AddStringToObject(c,"commandId",id); cJSON_AddNumberToObject(c,"ownershipGeneration",owner);
+        cJSON_AddNumberToObject(c,"expectedRevision",(double)revision); cJSON_AddNumberToObject(c,"expiresAt",(double)time(NULL)+60);
+        cJSON *d=cJSON_AddObjectToObject(c,"display"); cJSON_AddBoolToObject(d,"enabled",false);
+        cJSON_AddBoolToObject(d,"ledEnabled",false); cJSON_AddNumberToObject(d,"rotation",180);
+    }
+    free(reply); reply=cJSON_PrintUnformatted(o); cJSON_Delete(o);
+}
+static void check_settings_poll(void)
+{
+    settings_response("settings-1",0,false,true,2);
+    gate=true; poll_cloud(); gate=false;
+    assert(display_settings_snapshot().revision==0 && settings_applied==0);
+    update_pending=true; poll_cloud(); update_pending=false;
+    assert(display_settings_snapshot().revision==0 && settings_applied==0);
+    settings_response("settings-1",0,false,false,2); poll_cloud();
+    assert(display_settings_snapshot().revision==0);
+    settings_response("settings-1",0,false,true,99); poll_cloud();
+    assert(!strcmp(s_state,"invalid_settings") && display_settings_snapshot().revision==0);
+    strcpy(s_setup.secret,"test-proof"); s_setup.expires_us=2000000;
+    settings_response("settings-1",0,false,true,2); poll_cloud();
+    assert(!settings_applied && strstr(last_request,"\"readyForSettings\":false")); s_setup.secret[0]=0;
+    poll_cloud(); assert(settings_applied==1 && !starts && !releases);
+    assert(display_settings_snapshot().revision==1 && display_settings_pending());
+    assert(strstr(last_request,"\"settingsProtocolVersion\":1"));
+    assert(display_settings_init()==ESP_OK); // Reboot after durable commit, before receipt reaches backend.
+    poll_cloud(); assert(settings_applied==1 && strstr(last_request,"settingsReceipt"));
+    assert(strstr(last_request,"\"readyForJob\":false"));
+    assert(operation_begin()); assert(display_settings_save(display_settings_defaults())==ESP_OK); operation_end();
+    settings_response("settings-2",1,false,true,2); poll_cloud(); assert(settings_applied==1);
+    // Wrong acknowledgement cannot unblock a new command.
+    settings_response("settings-2",1,true,true,2);
+    cJSON *o=cJSON_Parse(reply); cJSON_ReplaceItemInObject(cJSON_GetObjectItem(o,"settingsAck"),"revision",cJSON_CreateNumber(99));
+    free(reply); reply=cJSON_PrintUnformatted(o); cJSON_Delete(o); poll_cloud(); assert(settings_applied==1);
+    settings_response("settings-1",0,true,true,2); poll_cloud();
+    assert(display_settings_snapshot().revision==2 && display_settings_snapshot().settings.enabled);
+    settings_response("settings-2",1,false,true,2); poll_cloud();
+    assert(display_settings_snapshot().receipt.state==DISPLAY_RECEIPT_CONFLICT && display_settings_snapshot().settings.enabled);
+    settings_response("settings-3",2,true,true,2); poll_cloud();
+    assert(display_settings_snapshot().revision==3 && !display_settings_snapshot().settings.enabled);
+    settings_response(NULL,0,true,true,2); poll_cloud(); assert(!display_settings_pending());
+    // USB changes after the advertised snapshot, while the HTTPS request is in flight.
+    settings_response("settings-race",3,false,true,2); usb_during_poll=true; poll_cloud();
+    assert(display_settings_snapshot().revision==4 && display_settings_snapshot().settings.enabled);
+    assert(display_settings_snapshot().receipt.state==DISPLAY_RECEIPT_CONFLICT);
+    settings_response(NULL,0,true,true,2); poll_cloud(); assert(!display_settings_pending());
+}
+
 int main(void)
 {
+    assert(display_settings_init()==ESP_OK);
     assert(cloud_init() == ESP_OK);
     cJSON *cfg =
         cJSON_Parse("{\"apiBaseUrl\":\"https://api.example.com/"
@@ -355,10 +421,13 @@ int main(void)
     assert(cloud_set_enabled(false) == ESP_OK && !s_setup.secret[0]);
     assert(cloud_set_enabled(true) == ESP_OK);
     cJSON_Delete(setup);
+    check_settings_poll();
     response("job-1", false);
     poll_cloud();
     assert(starts == 1 && releases == 1 && !strcmp(saved_receipt.state, "done"));
     assert(display_starts == 1 && display_completions == 1 && display_successes == 1);
+    settings_response("blocked-by-file",4,false,true,2); poll_cloud();
+    assert(display_settings_snapshot().revision==4);
     // Unacknowledged receipt blocks new jobs and credential reconfiguration.
     response("job-2", false);
     poll_cloud();
@@ -404,6 +473,15 @@ int main(void)
     response("job-5", false);
     poll_cloud();
     assert(starts == 4);
+    // An ambiguous settings write pauses cloud work/configuration until boot reloads it.
+    assert(operation_begin()); settings_fail_commit=settings_commit_ambiguous=true;
+    assert(display_settings_save(display_settings_defaults())==ESP_FAIL);
+    settings_fail_commit=settings_commit_ambiguous=false; operation_end();
+    assert(!display_settings_available() && unsettled());
+    response(NULL,false); poll_cloud();
+    assert(strstr(last_request,"\"settingsWritable\":false") && strstr(last_request,"\"readyForSettings\":false"));
+    assert(cloud_configure(cfg)==ESP_ERR_INVALID_STATE);
+    assert(display_settings_init()==ESP_OK && display_settings_available());
     // Auth failures pause polling persistently, and reset preserves the journal.
     api_status = 401;
     poll_cloud();
@@ -418,7 +496,7 @@ int main(void)
 // Update subsystem is exercised with real OTA/NVS/HTTP faults in test_updates.c.
 esp_err_t cloud_settings_migrate(void) { return ESP_OK; }
 esp_err_t firmware_update_init(void) { return ESP_OK; }
-bool firmware_update_pending(void) { return false; }
+bool firmware_update_pending(void) { return update_pending; }
 void firmware_update_add_poll(cJSON *body) { (void)body; }
 void firmware_update_ack(const cJSON *ack) { (void)ack; }
 void firmware_update_run(const cJSON *job, uint64_t gen, const char *host) { (void)job; (void)gen; (void)host; }

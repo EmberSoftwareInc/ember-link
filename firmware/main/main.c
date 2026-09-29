@@ -141,6 +141,7 @@ void app_main(void)
     // Never erase factory identity or transfer receipts on an NVS error.
     ESP_ERROR_CHECK(nvs_flash_init());
     ESP_ERROR_CHECK(operation_init());
+    ESP_ERROR_CHECK(display_settings_init());
     ESP_ERROR_CHECK(cloud_init());
     ESP_ERROR_CHECK(psa_crypto_init() == PSA_SUCCESS ? ESP_OK : ESP_FAIL);
 

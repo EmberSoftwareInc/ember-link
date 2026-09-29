@@ -79,6 +79,14 @@ The v2 preference blob adds LED state; v1 screen settings migrate with LED on. B
 `CONFIG_LINK_DISPLAY_FLIP=y` through **Ember Link display** in menuconfig to
 change the default to 180°. A saved user preference takes precedence.
 
+## Cloud settings (0.3.6-dev)
+
+This development branch adds cloud updates for the same three preferences,
+revision checks against stale requests, and durable outcome receipts. USB saves
+remain compatible and advance the shared revision. See [the backend contract and
+rollback limits](cloud-settings.md). Backend/browser integration and physical
+qualification are still required; release 0.3.5 has USB settings only.
+
 ## Implementation and validation
 
 A separate low-priority task renders a fixed 25,600-byte DMA framebuffer over

@@ -12,6 +12,8 @@ void display_progress(uint64_t written);
 void display_finish(bool success, const char *error);
 void display_notice(const char *text, bool error);
 
-// Configuration writes NVS; call only from setup with the operation gate held.
+// Configuration writes NVS; call with the operation gate held.
+// Apply the shared persisted state after a successful cloud transaction.
+void display_apply_saved_settings(void);
 display_settings_t display_get_settings(void);
 esp_err_t display_configure(display_settings_t settings);

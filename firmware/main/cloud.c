@@ -1,4 +1,5 @@
 #include "display.h"
+#include "display_cloud.h"
 // Ember Link cloud transfer v1. All connections originate at the dongle.
 // No backend endpoint or credential is shipped in the firmware image.
 #include "cloud.h"
@@ -109,7 +110,8 @@ static bool config_valid(const cloud_config_t *c)
 
 static bool unsettled(void)
 {
-    return (s_receipt.job_id[0] && !s_receipt.acknowledged) || firmware_update_pending();
+    return (s_receipt.job_id[0] && !s_receipt.acknowledged) || firmware_update_pending() ||
+           display_settings_pending() || !display_settings_available();
 }
 
 static cJSON *receipt_json(void)
@@ -371,6 +373,8 @@ static unsigned poll_cloud(void)
         s_setup.state = "expired";
     }
     firmware_update_add_poll(body);
+    display_cloud_add_poll(body);
+    cJSON_AddBoolToObject(body, "readyForSettings", display_settings_available() && !unsettled() && !s_setup.secret[0]);
     cJSON_AddBoolToObject(body, "readyForJob", !unsettled() && !s_setup.secret[0]);
     if (s_setup.secret[0]) {
         cJSON *setup = cJSON_AddObjectToObject(body, "setup");
@@ -416,6 +420,10 @@ static unsigned poll_cloud(void)
     }
     acknowledge(cJSON_GetObjectItemCaseSensitive(response, "receiptAck"));
     firmware_update_ack(cJSON_GetObjectItemCaseSensitive(response, "firmwareAck"));
+    if (cJSON_IsObject(cJSON_GetObjectItemCaseSensitive(response, "settingsAck")) && operation_begin()) {
+        (void)display_cloud_ack(cJSON_GetObjectItemCaseSensitive(response, "settingsAck"));
+        operation_end();
+    }
     if (!cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(response, "claimed"))) {
         s_state = "unclaimed";
     } else if (!link_json_u64(response, "ownershipGeneration", 1, 9007199254740991ULL,
@@ -423,6 +431,14 @@ static unsigned poll_cloud(void)
         s_state = "invalid_response";
     } else if (!unsettled() && !s_setup.secret[0] && cJSON_IsObject(cJSON_GetObjectItemCaseSensitive(response, "firmwareUpdate"))) {
         firmware_update_run(cJSON_GetObjectItemCaseSensitive(response, "firmwareUpdate"), generation, s_config.download_host);
+        delay = 5;
+    } else if (!unsettled() && !s_setup.secret[0] && display_settings_available() && cJSON_IsObject(cJSON_GetObjectItemCaseSensitive(response, "settingsUpdate"))) {
+        if (operation_begin()) {
+            esp_err_t err = display_cloud_run(cJSON_GetObjectItemCaseSensitive(response, "settingsUpdate"), generation, time(NULL));
+            if (err == ESP_OK) display_apply_saved_settings();
+            s_state = err == ESP_OK ? "awaiting_receipt_ack" : err == ESP_ERR_INVALID_ARG ? "invalid_settings" : "journal_error";
+            operation_end();
+        }
         delay = 5;
     } else if (!unsettled() && !s_setup.secret[0] && cJSON_IsObject(cJSON_GetObjectItemCaseSensitive(response, "job"))) {
         run_job(cJSON_GetObjectItemCaseSensitive(response, "job"), generation);
@@ -470,7 +486,7 @@ static void worker(void *arg)
                           !strcmp(s_state, "online") || !strcmp(s_state, "awaiting_receipt_ack") ? DISPLAY_CLOUD_ONLINE :
                           !strcmp(s_state, "connection_error") || !strcmp(s_state, "unclaimed") ||
                           !strcmp(s_state, "invalid_response") || !strcmp(s_state, "rate_limited") ||
-                          !strcmp(s_state, "journal_error") || !strcmp(s_state, "invalid_job") ? DISPLAY_CLOUD_ERROR : DISPLAY_CLOUD_CONNECTING);
+                          !strcmp(s_state, "invalid_settings") || !strcmp(s_state, "journal_error") || !strcmp(s_state, "invalid_job") ? DISPLAY_CLOUD_ERROR : DISPLAY_CLOUD_CONNECTING);
             xSemaphoreGive(s_session);
         }
         // A USB setup request wakes a worker that is backing off after a network failure.

@@ -34,9 +34,14 @@ void display_notice(const char *text, bool error) { LOCK(); if (s_state.active) 
 display_settings_t display_get_settings(void) {
     LOCK(); display_settings_t settings = s_settings; UNLOCK(); return settings;
 }
+void display_apply_saved_settings(void) {
+    display_settings_t settings; display_settings_load(&settings);
+    LOCK(); s_settings=settings; s_state.changed_at=now_ms(); UNLOCK();
+    led_set_enabled(settings.led_enabled);
+}
 esp_err_t display_configure(display_settings_t settings) {
     esp_err_t err = display_settings_save(settings);
-    if (err == ESP_OK) { LOCK(); s_settings = settings; s_state.changed_at = now_ms(); UNLOCK(); led_set_enabled(settings.led_enabled); }
+    if (err == ESP_OK) display_apply_saved_settings();
     return err;
 }
 
