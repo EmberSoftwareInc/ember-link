@@ -68,6 +68,15 @@ or production signing keys were added to CI.
 
 ## Qualification status
 
+Version 0.3.6 is the latest stable release and adds cloud screen/LED/orientation
+settings. Its exact signed image passed healthy-boot confirmation, settings and
+design preservation, cloud changes with USB readback, power-cycle persistence,
+and a Brother NQ1700E design preview. See [0.3.6 qualification](release-qualification-0.3.6.md)
+for artifacts and test limits. Cloud controls require the corresponding backend
+extension; production AWS publication remains a separate operator step.
+
+### Previous 0.3.5 qualification
+
 See [release qualification](release-qualification-2026-09-28.md) for measured
 hardware results. Production-signed 0.3.5 is published as stable and passed
 cloud HTTPS installation, guided Bridge Wi-Fi/USB installation, healthy-boot
