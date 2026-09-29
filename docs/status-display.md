@@ -97,7 +97,7 @@ without deliberately restarting the device. As with other hardware faults, a
 physically failing panel cannot always be detected by this write-only SPI bus.
 
 The driver uses the board manufacturer's initialization sequence, with MIT
-attribution in `third_party/lilygo-display/`. No GUI framework is required.
+attribution in [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md). No GUI framework is required.
 Native ASan/UBSan tests cover state priority, progress bounds, result expiry,
 clock rollover, text sanitization, renderer buffer boundaries, persistent
 preferences, invalid rotations, and simulated NVS failures. The signed
