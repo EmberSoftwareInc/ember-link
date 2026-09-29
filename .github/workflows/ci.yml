@@ -1,0 +1,38 @@
+name: Firmware checks
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Fetch pinned native cJSON test dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p firmware/managed_components/espressif__cjson/cJSON
+          cd firmware/managed_components/espressif__cjson/cJSON
+          upstream=https://raw.githubusercontent.com/DaveGamble/cJSON/b2890c8d76bbb64e710585ebc0a917196b9c67e7
+          curl --fail --location --proto '=https' "$upstream/cJSON.c" --output cJSON.c
+          curl --fail --location --proto '=https' "$upstream/cJSON.h" --output cJSON.h
+          echo '607e756460fa0de37d20a7a9181f2de29c97bfb7ce5a0e6c2f548243836cd852  cJSON.c' | sha256sum --check
+          echo '25b0145150d500498e4d209cec69c18c42cf818bffcc54690be3b895a2a16dee  cJSON.h' | sha256sum --check
+      - name: Native production-C sanitizer tests
+        env:
+          CC: clang
+        run: python tests/run_native.py
+      - name: Release lifecycle and catalog tests
+        run: python -m unittest discover -s tests -p 'test_*.py' -v
+# Deliberately no release/signing/upload permissions or secrets. Publication is
+# an explicit operator command after qualifying the exact signed image.

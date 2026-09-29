@@ -1,5 +1,10 @@
 # Publishing firmware for Bridge and the Ember web app
 
+For new releases, follow the [stable/dev operator lifecycle](release-lifecycle.md).
+It builds clean signed packages, records provenance, and separates dev recommendations
+from the existing stable feed. The lower-level commands below describe the artifact
+format and production AWS handoff; they are not automatic deployment.
+
 Link 0.3.5 (introduced in 0.3.5-dev) reports the same public board/layout/signing-key compatibility
 metadata over USB `info` and authenticated `GET /api/update` that cloud polls
 already report. No cloud enrollment is needed for local discovery or installation.

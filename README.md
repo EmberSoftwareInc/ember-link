@@ -71,6 +71,12 @@ WiFi provisioning, local HTTP transfers, USB setup, LEDs, and signed updates
 remain inherited foundations. Enrollment automation, live cloud byte progress,
 cloud firmware distribution, and remote file management are deferred.
 
+## Release workflow
+
+Use the [stable/dev release lifecycle](docs/release-lifecycle.md) for branch rules,
+numbered dev builds, signed packages, qualification, stable promotion, and withdrawal.
+Pushing code runs checks; publication is always an explicit operator step.
+
 ## Build
 
 Tested with ESP-IDF **6.0.2**, pinned in the manifest. Component versions are

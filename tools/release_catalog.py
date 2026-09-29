@@ -8,7 +8,9 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 
-def catalog(manifests):
+def catalog(manifests, channel=None):
+    if channel not in (None, "stable", "dev"):
+        raise ValueError("Unknown release channel")
     if len(manifests) > 16:
         raise ValueError('At most 16 board/layout/key recommendations are supported')
     channels = set()
@@ -30,21 +32,29 @@ def catalog(manifests):
                 or type(m.get('size')) is not int or not 4096 <= m['size'] <= 3*1024*1024
                 or not isinstance(m.get('notes'), str) or len(m['notes']) > 4000):
             raise ValueError('Invalid verified release manifest')
-        channel = (m['boardId'], m['layoutId'], m['signingKeyId'])
-        if channel in channels:
+        version = m['targetVersion']
+        if channel == 'stable' and not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+', version):
+            raise ValueError('Stable catalogs cannot recommend prereleases')
+        if channel == 'dev' and not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+-dev\.[1-9][0-9]*', version):
+            raise ValueError('Dev catalogs require a numbered -dev.N version')
+        if parts[5] != 'v' + version:
+            raise ValueError('Artifact tag must match targetVersion')
+        compatibility = (m['boardId'], m['layoutId'], m['signingKeyId'])
+        if compatibility in channels:
             raise ValueError('Only one recommended release per board/layout/key is allowed')
-        channels.add(channel)
+        channels.add(compatibility)
         releases.append({k: m[k] for k in ['schema', 'releaseId', 'targetVersion', 'boardId', 'layoutId', 'signingKeyId', 'size', 'sha256', 'notes', 'url']})
-    return dict(schema=1, releases=releases)
+    return dict(schema=1, releases=releases, **({"channel": channel} if channel else {}))
 
 
 if __name__ == '__main__':
     p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument('--channel', choices=('stable', 'dev'), default='stable')
     p.add_argument('--manifest', type=Path, action='append', default=[])
     p.add_argument('--output', type=Path, required=True)
     a = p.parse_args()
     try:
-        result = catalog([json.loads(path.read_text()) for path in a.manifest])
+        result = catalog([json.loads(path.read_text()) for path in a.manifest], a.channel)
     except (ValueError, KeyError, TypeError) as e:
         p.error(str(e))
     a.output.write_text(json.dumps(result, indent=2) + '\n')
