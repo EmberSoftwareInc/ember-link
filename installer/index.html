@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none'">
+<title>Install Ember Link</title><link rel="stylesheet" href="./style.css"><script type="module" src="./app.js"></script></head>
+<body><main><header><a href="https://github.com/EmberSoftwareInc/ember-link">EMBER / LINK</a><span>Open source · MIT</span></header>
+<section class="hero"><p class="eyebrow">MAKE YOUR MACHINE WIRELESS</p><p>Install Ember Link on a LILYGO T-Dongle-S3, then choose how to set it up. No terminal or desktop installer required.</p></section>
+<p id="support" role="status"></p>
+<section class="card"><div class="step">01 / GET READY</div><h2>You will need a few things first:</h2><ul><li>A LILYGO T-Dongle-S3 (the version with a screen is recommended and tested)</li><li>A microSD card with a capacity your embroidery machine supports</li><li>A computer running a compatible desktop browser, such as Chrome or Edge, and a USB data connection</li></ul></section>
+<section class="card"><div class="step">02 / INSTALL</div><h2>Start with Ember Link</h2><p>Hold <button type="button" class="button-help" data-button-help aria-controls="button-photo" aria-expanded="false">the small button</button> while plugging the dongle into your computer, then release it.</p>
+<label for="channel">Firmware channel</label><select id="channel"><option value="stable">Stable · recommended</option><option value="dev">Development · experimental</option></select>
+<label id="dev-label" class="check" hidden><input id="dev-consent" type="checkbox">I understand Development firmware is experimental.</label>
+<p id="release" role="status">Checking the current release…</p>
+<label class="check"><input id="erase-consent" type="checkbox">I approve erasing this board’s internal flash, including firmware, Wi-Fi settings, and cloud credentials. I have saved anything I need. The microSD card is not erased.</label>
+<button id="install" disabled>Connect and install</button><progress id="progress" max="100" value="0" hidden></progress><p id="status" role="status" aria-live="polite"></p>
+</section>
+<section class="card"><div class="step">03 / CHECK YOUR CARD</div><h2>Prepare your microSD</h2>
+<p>After installation, unplug and reconnect normally. Wait for startup, then press and release <button type="button" class="button-help" data-button-help aria-controls="button-photo" aria-expanded="false">the small button</button> <strong>twice within one second</strong>.</p>
+<button id="card-connect">Connect to check card</button> <button id="card-disconnect" disabled>Disconnect USB</button>
+<p id="card-device"></p><p id="card-label"></p><p id="card-status" role="status" aria-live="polite">An already compatible card can be used without erasing it.</p><p id="card-mode"></p>
+<button id="card-check" disabled>Recheck card</button>
+<label class="check"><input id="card-ejected" type="checkbox" disabled>I have safely ejected the dongle’s drive on this computer and closed any files on it.</label>
+<button id="card-maintenance" disabled>Enter card maintenance</button>
+<p>After the maintenance restart, connect again above. Link disconnects Wi-Fi and USB storage while preparing the card. Do not remove or swap the card while powered.</p>
+<p><button id="card-rename" disabled>Rename to EMBER LINK</button></p>
+<p class="small">Rename an existing FAT32 card without erasing its files. Enter card maintenance first. Requires firmware with card naming support.</p>
+<label class="check"><input id="card-erase" type="checkbox" disabled><span>I approve deleting <strong>all files and partitions on this dongle’s microSD card</strong>. I have backed up anything I need.</span></label>
+<button id="card-format" disabled>Erase and prepare as FAT32</button>
+</section>
+<section class="card"><div class="step">04 / CHOOSE YOUR SETUP</div><h2>Where will you send from?</h2><div id="setup-usb-session" hidden><p>Disconnect USB before opening Ember or Bridge.</p><button id="setup-disconnect" disabled>Disconnect USB</button></div><p>After installation, unplug and reconnect normally. Wait for startup, then press and release <button type="button" class="button-help" data-button-help aria-controls="button-photo" aria-expanded="false">the small button</button> <strong>twice within one second</strong> to enable USB setup.</p>
+<h3>Keep it simple with Ember</h3><p>Continue in the Ember web app to configure Wi-Fi and link an eligible device to your account. Cloud delivery requires separate device enrollment and Ember Pro. Installing firmware alone does not enroll a DIY board.</p><p><a href="https://emberdesign.net/link">Continue in Ember</a></p>
+<h3>Keep it local with Bridge</h3><p>Open Ember Link in the free Bridge app to configure Wi-Fi and pair your dongle for local transfers. No Ember account or Pro subscription is needed.</p><p><a href="ember-bridge://setup">Open Ember Bridge</a> · <a href="https://github.com/EmberSoftwareInc/ember-bridge/releases/latest">Download Bridge</a></p>
+<p>Already running Ember Link? Go straight to setup. You do not need to reinstall firmware or erase settings.</p>
+<p class="small">When setup is complete, safely eject the drive and move Link to your machine without holding <button type="button" class="button-help" data-button-help aria-controls="button-photo" aria-expanded="false">the small button</button>. Your machine must support the card and design format.</p></section>
+<div id="button-photo" popover role="dialog" aria-label="Find the small button">
+<button type="button" class="photo-close" aria-label="Close button photo">×</button>
+<figure><div class="button-photo-image"><img src="./assets/dongle-button.png" width="1024" height="1024" alt="Back of a LILYGO T-Dongle-S3. The small round button is next to the USB plug, beneath the clear case opening."><span class="button-marker" aria-hidden="true"></span></div><figcaption>The small round button beside the USB plug.</figcaption></figure>
+</div>
+<footer><a href="https://github.com/EmberSoftwareInc/ember-link/blob/main/docs/diy-build-guide.md">Detailed build & recovery guide</a><a href="https://github.com/EmberSoftwareInc/ember-link">Source code</a><a href="./THIRD_PARTY_LICENSES.txt">Third-party licenses</a></footer></main></body></html>

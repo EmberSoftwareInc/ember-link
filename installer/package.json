@@ -1,0 +1,10 @@
+{
+  "name": "ember-link-installer",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {"build": "node build.mjs", "test": "node --test tests/*.test.mjs"},
+  "dependencies": {"esptool-js": "0.7.0", "@noble/hashes": "1.8.0"},
+  "devDependencies": {"esbuild": "0.28.2"}
+}

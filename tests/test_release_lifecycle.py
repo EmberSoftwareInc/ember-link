@@ -122,13 +122,14 @@ class LifecycleTests(unittest.TestCase):
         current=dict(schema=1,channel='dev',releases=[])
         import base64
         response=json.dumps(dict(sha='original-sha',content=base64.b64encode(json.dumps(current).encode()).decode()))
-        with patch.object(r,'gh',side_effect=[response,'{}']) as gh:
+        with patch.object(r,'gh',side_effect=[response,'{}','']) as gh:
             r.update_dev(catalog([manifest()],'dev'),'Test recommendation')
-            payload=gh.call_args.kwargs['payload']
+            payload=gh.call_args_list[1].kwargs['payload']
             self.assertEqual(payload['branch'],'release-channels');self.assertEqual(payload['sha'],'original-sha')
             self.assertEqual(json.loads(base64.b64decode(payload['content']))['channel'],'dev')
         with patch.object(r,'gh',return_value=response) as gh:
-            r.update_dev(current,'No change');self.assertEqual(gh.call_count,1)
+            r.update_dev(current,'No change');self.assertEqual(gh.call_count,2)
+            self.assertEqual(gh.call_args.args[:3],('workflow','run','installer.yml'))
 
     def test_recommend_refuses_stable_or_unpublished_packages(self):
         with tempfile.TemporaryDirectory() as temp:

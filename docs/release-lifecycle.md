@@ -1,9 +1,8 @@
 # Stable and development release lifecycle
 
 This is the operator runbook for Ember Link firmware. Branches, catalogs, and
-`tools/release.py` implement the GitHub lifecycle described here. Bridge and cloud
-channel selectors are a separate follow-up; their current stable behavior is
-unchanged. Production cloud deployment is also separate from GitHub publication.
+`tools/release.py` implement the GitHub lifecycle described here. Bridge and the reference cloud example implement separate per-device
+Stable/Development preferences. Production cloud deployment is also separate from GitHub publication.
 
 ## Branches and feeds
 
@@ -93,8 +92,8 @@ python tools/release.py prepare --channel dev \
 
 Use the established production key for both channels. This preserves the update
 path for production-key devices. The key remains outside Git and GitHub Actions.
-The tool does not upload the key, build logs, SDK configuration, ELF, bootloader,
-or any other build-directory contents.
+The tool uploads only the allowlisted public release files below. Keys, build
+logs, SDK configuration, ELF files, and device data are excluded.
 
 `prepare` makes a fresh ESP-IDF build from the current clean checkout with the
 committed defaults and the supplied signing-key path. It rejects an existing
@@ -103,14 +102,20 @@ application signature with the committed production public key and checks the
 image version against the source version. Source changes during the build stop
 packaging. The package records the full source commit and branch.
 
-Only these six files are published:
+New packages publish these ten files:
 
 - `ember-link.bin`: signed application image.
 - `manifest.json`: verified image compatibility, hash, size, and tagged URL.
 - `link-releases.json`: channel-specific recommendation.
 - `provenance.json`: source commit, branch, version, channel, and image hash.
 - `release-notes.md`: the prepared release notes.
-- `SHA256SUMS`: checksums for the preceding five files.
+- `bootloader.bin`, `partition-table.bin`, `ota_data_initial.bin`: first-install components.
+- `factory.json`: validated board, offsets, file hashes, and source/version binding.
+- `SHA256SUMS`: checksums for the preceding nine files.
+
+Legacy schema-1 releases retain their original six assets. New schema-2 packages
+require browser first-install qualification as well as update qualification;
+see [browser installer](browser-installer.md) for packaging and Pages deployment.
 
 Keep the full local package for qualification and later recommendation changes.
 An ordinary build or successful CI check does not approve installation or release.
@@ -142,10 +147,11 @@ can be reviewed and corrected before publication.
 ## 5. Publish the qualified dev build, then recommend it
 
 ```sh
-python tools/release.py publish /tmp/link-0.3.7-dev.1 --qualified
+python tools/release.py publish /tmp/link-0.3.7-dev.1 --qualified --factory-qualified
 python tools/release.py recommend-dev /tmp/link-0.3.7-dev.1
 ```
 
+`--factory-qualified` additionally asserts fresh-board browser installation passed.
 `--qualified` is the operator's assertion that the exact image passed its recorded
 checks. The tool verifies signature, package checksums, source ancestry, draft
 channel/target, and downloaded draft assets before publishing. It then verifies
@@ -189,7 +195,7 @@ python tools/release.py prepare --channel stable \
   --notes-file /tmp/link-0.3.7-notes.md
 python tools/release.py draft /tmp/link-0.3.7
 # Install and qualify this exact stable binary; record the evidence.
-python tools/release.py publish /tmp/link-0.3.7 --qualified
+python tools/release.py publish /tmp/link-0.3.7 --qualified --factory-qualified
 ```
 
 This publishes `v0.3.7` with prerelease=false and latest=true, updating the existing
