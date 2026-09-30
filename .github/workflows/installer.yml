@@ -1,7 +1,7 @@
 name: Browser installer
 on:
   push:
-    branches: [main, release-channels]
+    branches: [main]
     paths:
       - 'installer/**'
       - 'tools/build_installer.py'
@@ -9,8 +9,6 @@ on:
       - 'tools/release.py'
       - '.github/workflows/installer.yml'
       - 'dev.json'
-  release:
-    types: [published, released, edited, deleted]
   workflow_dispatch:
 permissions:
   contents: read
@@ -19,7 +17,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   site:
-    if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

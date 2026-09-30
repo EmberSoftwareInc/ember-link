@@ -190,13 +190,14 @@ def publish(args):
     require(git('rev-parse', p['tag']+'^{commit}') == p['sourceCommit'], 'Published tag points to unexpected source')
     print('Published. Stable publication updates the existing stable feed.' if p['channel'] == 'stable'
           else 'Published prerelease. Run recommend-dev separately to offer it to opted-in testers.')
+    sync_installer()
 
 
 def sync_installer():
     try:
         gh('workflow', 'run', 'installer.yml', '--repo', REPO, '--ref', 'main')
     except subprocess.CalledProcessError:
-        print('Channel metadata is saved, but installer deployment did not start. Retry the Browser installer workflow on main.', file=sys.stderr)
+        print('The release or channel change is saved, but installer deployment did not start. Retry the Browser installer workflow on main.', file=sys.stderr)
 
 
 def update_dev(value, message):

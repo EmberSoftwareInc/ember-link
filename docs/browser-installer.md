@@ -124,9 +124,13 @@ Publish once; never replace a tagged binary to fix an installer failure.
 ## Pages deployment
 
 `.github/workflows/installer.yml` builds the website from `main`. It runs on
-installer/tooling changes and release events, and can be dispatched manually on
-`main`. Development recommendation/withdrawal commands explicitly dispatch it,
-because the metadata-only `release-channels` branch does not contain workflows.
+installer/tooling changes on `main`, and can be dispatched manually on `main`.
+Successful release publication and Development recommendation/withdrawal commands
+explicitly dispatch it on `main`. This respects the `github-pages` environment’s
+main-branch restriction; release events run on tags and cannot deploy there.
+The metadata-only `release-channels` branch does not contain workflows either.
+If a release is published, edited or removed outside `tools/release.py`, manually
+run **Browser installer** on `main` to synchronize the site.
 
 `tools/build_installer.py` resolves the current latest stable release and the
 explicit Development feed. It downloads the required assets, checks package

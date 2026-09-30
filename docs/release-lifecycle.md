@@ -156,7 +156,9 @@ python tools/release.py recommend-dev /tmp/link-0.3.7-dev.1
 checks. The tool verifies signature, package checksums, source ancestry, draft
 channel/target, and downloaded draft assets before publishing. It then verifies
 the published tag points to the recorded commit. Dev publication explicitly uses
-prerelease=true and latest=false.
+prerelease=true and latest=false. Successful publication dispatches the Browser
+installer workflow on `main`; a deployment-start failure reports a retry instruction
+without repeating or undoing publication.
 
 `recommend-dev` separately checks the published release and downloaded assets,
 then updates only `release-channels/dev.json`. It never writes `main`, a stable

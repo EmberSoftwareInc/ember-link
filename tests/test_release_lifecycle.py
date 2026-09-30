@@ -3,6 +3,7 @@ import importlib.util
 import json
 from pathlib import Path
 import sys
+import subprocess
 import tempfile
 from types import SimpleNamespace
 import unittest
@@ -114,9 +115,20 @@ class LifecycleTests(unittest.TestCase):
                 info=dict(tagName=p['tag'],isDraft=True,isPrerelease=channel=='dev',targetCommitish=p['sourceCommit'])
                 with patch.object(r,'checked_package',return_value=p),patch.object(r,'release_info',return_value=info),patch.object(r,'check_assets'),patch.object(r,'git',side_effect=['',p['sourceCommit']]),patch.object(r,'run'),patch.object(r,'gh') as gh:
                     r.publish(SimpleNamespace(package=root,qualified=True))
-                    args=gh.call_args.args
+                    args=gh.call_args_list[0].args
+                    self.assertEqual(gh.call_args_list[1].args,('workflow','run','installer.yml','--repo',r.REPO,'--ref','main'))
                     self.assertIn('--latest='+str(channel=='stable').lower(),args)
                     self.assertIn('--prerelease='+str(channel=='dev').lower(),args)
+
+    def test_installer_dispatch_failure_does_not_repeat_a_published_release(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);p,_=self.package(root,'stable')
+            info=dict(tagName=p['tag'],isDraft=True,isPrerelease=False,targetCommitish=p['sourceCommit'])
+            with patch.object(r,'checked_package',return_value=p),patch.object(r,'release_info',return_value=info),patch.object(r,'check_assets'),patch.object(r,'git',side_effect=['',p['sourceCommit']]),patch.object(r,'run'),patch.object(r,'gh',side_effect=['',subprocess.CalledProcessError(1,['gh','workflow','run'])]) as gh,patch('sys.stderr') as stderr:
+                r.publish(SimpleNamespace(package=root,qualified=True))
+                self.assertEqual(gh.call_count,2)
+                self.assertEqual(gh.call_args_list[0].args[:2],('release','edit'))
+                self.assertTrue(any('installer deployment did not start' in str(c) for c in stderr.write.call_args_list))
 
     def test_feed_write_uses_expected_sha_and_only_dev_branch(self):
         current=dict(schema=1,channel='dev',releases=[])
