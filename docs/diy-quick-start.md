@@ -123,6 +123,5 @@ storage, rather than validated for every USB embroidery machine.
 Firmware with card-preparation support offers an optional **Check your card**
 step in the browser installer. Keep an existing FAT32 card, or explicitly erase
 and prepare a supported 64 MiB to 32 GiB card without a separate card reader.
-This requires the new firmware capability; published 0.3.6 still needs separate
-formatting. See [the card preparation flow](browser-installer.md#optional-card-preparation)
+This is available in stable 0.3.7 and later; 0.3.6 requires separate formatting. See [the card preparation flow](browser-installer.md#optional-card-preparation)
 for the USB maintenance steps and current test status.

@@ -8,8 +8,8 @@ the reference for building from source, manual setup, cloud
 provisioning, diagnostics, and recovery.
 
 This guide covers buying the parts, installing firmware, checking the USB drive,
-and configuring Wi-Fi. The current qualified stable baseline is **Ember Link 0.3.6**
-([qualification record](release-qualification-0.3.6.md)). It targets the **original LILYGO
+and configuring Wi-Fi. The current qualified stable baseline is **Ember Link 0.3.7**
+([qualification record](release-qualification-0.3.7.md)). It targets the **original LILYGO
 T-Dongle-S3**, and **ESP-IDF 6.0.2**. No soldering or custom PCB is required.
 
 Ember Link presents a microSD card as a USB flash drive to an embroidery machine.
@@ -118,7 +118,7 @@ From a directory without spaces, clone and enter the repository:
 ```sh
 git clone https://github.com/EmberSoftwareInc/ember-link.git
 cd ember-link
-git switch --detach v0.3.6
+git switch --detach v0.3.7
 ```
 
 The firmware repository is public. These instructions build the stable source
@@ -286,7 +286,7 @@ Type or paste each JSON command on one line, then press Enter:
 {"id":1,"cmd":"info"}
 ```
 
-The response should have `ok:true`, `name:"Ember Link"`, `version:"0.3.6"` (or the version you built), `usbMode:"setup"`,
+The response should have `ok:true`, `name:"Ember Link"`, `version:"0.3.7"` (or the version you built), `usbMode:"setup"`,
 `usbProtocolVersion:1`, `setupProtocolVersion:1`, a serial number, and `wifi` and
 `cloud` objects. A fresh DIY board normally reports `cloud.configured:false`.
 That is expected until enrollment. A temporarily busy cloud worker may return
@@ -355,10 +355,10 @@ briefly disconnects/reconnects its USB storage so the host can reread the card.
 Do not send or replace files while the machine is reading from it; some machines
 may require reopening the USB browser or reinserting the dongle.
 
-Stable 0.3.6 was checked on a LilyGO T-Dongle-S3 with FAT32 storage and a Brother
+Stable 0.3.7 was checked on a LilyGO T-Dongle-S3 with FAT32 storage and a Brother
 NQ1700E: a saved design previewed and the machine remained responsive. This is
 not certification of other machines, all card capacities, or stitching. See the
-[current qualification record](release-qualification-0.3.6.md) and
+[current qualification record](release-qualification-0.3.7.md) and
 [hardware validation checklist](hardware-validation.md). Current Ember Bridge
 releases support Link setup and local transfers; older EmberConnect-era builds
 may not support the new identity.
@@ -497,6 +497,5 @@ LED state, and the exact non-sensitive error. Do not include credentials or dump
 Firmware with card-preparation support offers an optional **Check your card**
 step in the browser installer. Keep an existing FAT32 card, or explicitly erase
 and prepare a supported 64 MiB to 32 GiB card without a separate card reader.
-This requires the new firmware capability; published 0.3.6 still needs separate
-formatting. See [the card preparation flow](browser-installer.md#optional-card-preparation)
+This is available in stable 0.3.7 and later; 0.3.6 requires separate formatting. See [the card preparation flow](browser-installer.md#optional-card-preparation)
 for the USB maintenance steps and current test status.

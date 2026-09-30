@@ -186,12 +186,12 @@ Card preparation sets the FAT32 volume label to `EMBER LINK` and verifies it aft
 
 `info.cardLabelProtocolVersion: 1` advertises naming support. `card_status` adds `label` (up to 11 printable ASCII characters) and `canRename`. In maintenance, `card_rename` requires `confirm: "RENAME_MICROSD"`, the device serial and the fresh single-use challenge from `card_status`. Success returns `verified: true` and `label: "EMBER LINK"` after a remount/readback. The browser never retries automatically. Older firmware can still check/prepare cards, but does not offer rename.
 
-This naming candidate is unpublished. The earlier dev.2 physical qualification above does not establish physical qualification for this change; Finder name and existing-design checks remain pending.
+This local naming candidate was not published. Its physical results follow below; the earlier dev.2 checks alone did not qualify the naming change.
 
-Local validation for card naming passed: the production formatter and real FatFs under address/undefined-behavior sanitizers; nested-file byte preservation and unchanged MBR/boot sector on the 120 MiB layout; repeated rename with no writes; rejection of FAT16, missing and unformatted cards; injected write failure and recovery. All 11 installer tests, 19 Python release/package tests, native firmware suites, installer build and signed ESP-IDF firmware build passed. The local preview offers 0.3.7-dev.3; no GitHub release or recommendation was changed.
+Local validation for card naming passed: the production formatter and real FatFs under address/undefined-behavior sanitizers; nested-file byte preservation and unchanged MBR/boot sector on the 120 MiB layout; repeated rename with no writes; rejection of FAT16, missing and unformatted cards; injected write failure and recovery. All 11 installer tests, 19 Python release/package tests, native firmware suites, installer build and signed ESP-IDF firmware build passed. At that stage the local preview offered dev.3 without changing a GitHub release or recommendation.
 
 
-### Card naming hardware test (2026-09-30, in progress)
+### Card naming hardware test (2026-09-30)
 
 The spare with the 120 MiB card was updated from 0.3.7-dev.2 to the exact
 production-signed 0.3.7-dev.3 candidate, SHA-256
@@ -204,7 +204,7 @@ The card was safely unmounted before maintenance.
 
 The user entered maintenance through the browser installer, reconnected its USB
 session, selected **Rename to EMBER LINK**, and reported successful renaming.
-Normal-reconnect label/file checks and the resulting design preview are pending.
+The normal-reconnect label/file checks and resulting design preview were completed next, as recorded below.
 
 Three earlier USB upload attempts did not confirm completion. Bridge was found
 holding the same serial port during the third attempt. After the user fully quit
@@ -220,4 +220,14 @@ matched. The card was safely unmounted for the pending Brother preview.
 The user confirmed that `DIYTEST.PES` still previewed as a square on the Brother
 NQ1700E and the machine stayed responsive after renaming. This completes the
 rename/persistence/file-preservation/preview check for the dev.3 candidate.
-The format-and-name path will be checked on the final stable candidate.
+The format-and-name path was subsequently checked on the final stable image.
+
+
+## Stable 0.3.7 result
+
+The exact production-signed 0.3.7 image passed signed USB update, full browser
+installation and healthy boot, explicit browser FAT32 preparation with the
+EMBER LINK label, normal-reconnect card/layout checks, restored-file hash
+verification, and Brother NQ1700E design preview with the machine responsive.
+The stable release is published. See [the 0.3.7 qualification record](release-qualification-0.3.7.md)
+for the source commit, image hash, test scope and inherited interruption evidence.

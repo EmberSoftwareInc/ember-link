@@ -10,9 +10,9 @@ is `ember-link` and the display name is `Ember Link`. The current branch's versi
 is defined in [app_version.h](firmware/main/app_version.h). Legacy firmware/Bridge
 identity compatibility is not preserved.
 
-The latest qualified stable release is **0.3.6**. See its
-[qualification record](docs/release-qualification-0.3.6.md) for the exact image,
-cloud settings tests, and Brother NQ1700E preview checks. Earlier validation
+The latest qualified stable release is **0.3.7**. See its
+[qualification record](docs/release-qualification-0.3.7.md) for the exact image,
+browser installation, card preparation and Brother NQ1700E preview checks. Earlier validation
 records describe their original builds, not the current qualification status.
 
 ## Build your own

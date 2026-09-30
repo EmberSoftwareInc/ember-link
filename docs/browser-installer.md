@@ -38,9 +38,10 @@ is no fallback to an unrelated version or the newest arbitrary prerelease.
 ## Optional card preparation
 
 The new firmware exposes `cardPreparationProtocolVersion: 1` in USB `info`.
-Published 0.3.6 does not have this capability; its installer path still requires
-separate card preparation. The working 0.3.7-dev.3 image is an unpublished test
-build, not a new release or Development recommendation.
+Stable 0.3.7 includes card preparation and naming. Older 0.3.6 firmware does not
+have this capability and requires separate card preparation. The dev.2/dev.3
+local candidates in the test history were not published or recommended builds.
+See [0.3.7 qualification](release-qualification-0.3.7.md) for the final exact image.
 
 After installation, reconnect normally and double-press BOOT. **Connect to check
 card** opens a new Web Serial setup session and reads its status. An existing
