@@ -16,3 +16,7 @@ firmware/managed_components/
 __pycache__/
 *.pyc
 artifacts/
+
+# Browser installer dependencies and generated site
+installer/node_modules/
+installer/dist/

@@ -156,11 +156,17 @@ void app_main(void)
         vTaskDelay(pdMS_TO_TICKS(2000)); // allow the card guidance to become visible
         ESP_ERROR_CHECK(storage_result);
     }
-    display_card(DISPLAY_CARD_READY);
+    display_card(storage_ready() ? DISPLAY_CARD_READY : DISPLAY_CARD_ERROR);
     if (usb_mode_is_setup()) ESP_ERROR_CHECK(usb_setup_start());
-    ESP_ERROR_CHECK(wifi_mgr_start(on_wifi_state));
-
-    ESP_ERROR_CHECK(cloud_start());
+    if (!usb_mode_is_card_maintenance()) {
+        ESP_ERROR_CHECK(wifi_mgr_start(on_wifi_state));
+        ESP_ERROR_CHECK(cloud_start());
+    } else {
+        // No wireless tasks, HTTP uploads or cloud jobs exist during formatting.
+        // Maintenance does not confirm an OTA candidate's normal health.
+        display_card(DISPLAY_CARD_READY);
+        display_notice("Card maintenance", false);
+    }
 
     xTaskCreate(button_task, "button", 3072, NULL, 5, NULL);
 

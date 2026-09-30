@@ -1,5 +1,12 @@
 # Build your own Ember Link
 
+**New to the project? Start with the [DIY quick start](diy-quick-start.md).**
+It covers the parts, installation path, and guided setup through Ember Bridge.
+The [browser installer](https://embersoftwareinc.github.io/ember-link/) offers
+qualified prebuilt first-install packages when available. This full guide is
+the reference for building from source, manual setup, cloud
+provisioning, diagnostics, and recovery.
+
 This guide covers buying the parts, installing firmware, checking the USB drive,
 and configuring Wi-Fi. The current qualified stable baseline is **Ember Link 0.3.6**
 ([qualification record](release-qualification-0.3.6.md)). It targets the **original LILYGO
@@ -36,7 +43,7 @@ The firmware repository does not contain production credentials or the backend.
 | 1 | **Working microSD/TF card** | Use a card capacity supported by your machine, formatted as FAT32. An ordinary 4–32 GB SDHC card is a starting choice only if your machine supports it; some machines need much smaller cards. FAT16 passed Mac-only smoke tests, but this card was rejected by the Brother NQ1700E; use FAT32 for the tested Brother configuration. |
 | 1 | **Computer** | macOS, Windows, or Linux, with Git, internet access for downloading build dependencies, and a USB data connection. |
 | As needed | **USB-C male to USB-A female data adapter** | Needed if your computer has only USB-C. A charging-only adapter will not work. |
-| 1 | **microSD reader** | Used to format and check the card before inserting it into the dongle. |
+| Optional | **microSD reader** | Useful for backups or separate formatting. Firmware with browser card-preparation support can prepare the card inside Link. |
 | Optional | Short USB-A extension cable and suitable case | Useful for reaching the BOOT button and reducing strain on the machine's port. Keep the card slot and button accessible. |
 | For Wi-Fi | **2.4 GHz Wi-Fi network** | Use a normal home/workshop network. Captive-portal and enterprise sign-in flows are not implemented. Internet access is additionally needed for cloud delivery. |
 | For machine use | **Embroidery machine with a USB host port for flash drives** | Its manual must allow USB storage and the chosen card format/capacity. A computer-link/service port is not the same thing. |
@@ -115,8 +122,9 @@ git switch --detach v0.3.6
 ```
 
 The firmware repository is public. These instructions build the stable source
-with your own signing key. Published application images are update images, not
-complete first-install flash bundles. Run commands from the **repository root**.
+with your own signing key. The standalone `ember-link.bin` release image is an update image, not a complete
+first-install flash bundle. The browser installer uses a separate validated set
+of bootloader, partition, initial OTA, and application files. Run commands from the **repository root**.
 Use the [release lifecycle](release-lifecycle.md) for official stable/dev publishing;
 checking out `dev` alone does not select an update channel on your device.
 
@@ -249,6 +257,19 @@ mounted volume's label comes from your card and may have a different name.
 The LCD shows **USB setup** in this mode. On a fresh install, a blue LED
 indicates Wi-Fi setup mode. The screen may briefly show a higher-priority card,
 transfer, or update message.
+
+### Recommended: guided setup with Ember Bridge
+
+Once Ember Link firmware is installed and USB setup mode is enabled,
+[Ember Bridge](https://github.com/EmberSoftwareInc/ember-bridge/releases/latest)
+can configure Wi-Fi and pair the dongle for local transfers. Open **Ember Link**
+at the bottom left, choose **Set up Wi-Fi**, select your 2.4 GHz network, enter
+its password and a machine name, then click **Connect**. Wait for confirmation
+that Link is connected, paired, and saved on the Machines page.
+
+Close any serial terminal or browser USB session before using Bridge. Follow the
+[quick start](diy-quick-start.md#5-send-your-first-design) to send your first file.
+The manual methods below are alternatives, not additional required steps.
 
 ### Verify the firmware over USB
 
@@ -470,3 +491,12 @@ step for this development build.
 
 For support, include board variant, firmware version/commit, OS, card size/format,
 LED state, and the exact non-sensitive error. Do not include credentials or dumps.
+
+### Preparing the card in the browser
+
+Firmware with card-preparation support offers an optional **Check your card**
+step in the browser installer. Keep an existing FAT32 card, or explicitly erase
+and prepare a supported 64 MiB to 32 GiB card without a separate card reader.
+This requires the new firmware capability; published 0.3.6 still needs separate
+formatting. See [the card preparation flow](browser-installer.md#optional-card-preparation)
+for the USB maintenance steps and current test status.

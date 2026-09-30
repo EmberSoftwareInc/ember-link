@@ -20,6 +20,7 @@
 #include <stdint.h>
 
 #include "esp_err.h"
+#include "card_layout.h"
 
 #define STORAGE_MAX_FILES 128
 #define STORAGE_MAX_NAME 128
@@ -30,9 +31,8 @@ typedef struct {
 } storage_file_t;
 
 // setup_mode selects MSC+CDC for a computer; otherwise exposes MSC only.
-// Blocks until an SD card is found (retrying; caller shows LED_ERROR via
-// the wait callback), then creates the MSC storage backed by it, installs
-// the TinyUSB driver, and exposes the card to the USB host.
+// Missing/unreadable cards leave storage unavailable but do not block setup.
+// In maintenance mode only CDC is exposed, with no network/storage clients.
 //
 // `provisioned` (i.e. WiFi credentials exist) decides whether the card
 // carries the "START HERE" pointer to the Ember Link setup page: written to
@@ -53,3 +53,10 @@ const char *storage_base_path(void);
 // Cached views — safe to call any time, never touch the card.
 size_t storage_cached_files(storage_file_t *out, size_t max);
 void storage_cached_stats(uint64_t *total_bytes, uint64_t *free_bytes);
+
+bool storage_ready(void);
+void storage_card_info(card_info_t *out);
+// Caller must hold the operation gate; only CDC-only maintenance may format.
+esp_err_t storage_format_card(void);
+
+esp_err_t storage_rename_card(void);

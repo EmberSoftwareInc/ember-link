@@ -11,6 +11,7 @@ import subprocess
 import sys
 import tempfile
 from release_catalog import catalog
+import factory_package
 
 ROOT = Path(__file__).resolve().parents[1]
 REPO = 'EmberSoftwareInc/ember-link'
@@ -83,8 +84,13 @@ def verify_image(image, version, notes):
     return value
 
 
+def assets(directory):
+    p = json.loads((directory/'provenance.json').read_text())
+    return ASSETS[:-1] + (factory_package.EXTRA_ASSETS if p.get('schema') == 2 else ()) + ('SHA256SUMS',)
+
+
 def checksums(directory):
-    return ''.join(hashlib.sha256((directory/name).read_bytes()).hexdigest()+'  '+name+'\n' for name in ASSETS[:-1])
+    return ''.join(hashlib.sha256((directory/name).read_bytes()).hexdigest()+'  '+name+'\n' for name in assets(directory)[:-1])
 
 
 def prepare(args):
@@ -107,9 +113,10 @@ def prepare(args):
     manifest = verify_image(out/'ember-link.bin', version, notes)
     (out/'manifest.json').write_text(json.dumps(manifest, indent=2)+'\n')
     (out/'link-releases.json').write_text(json.dumps(catalog([manifest], args.channel), indent=2)+'\n')
-    (out/'provenance.json').write_text(json.dumps(dict(schema=1, repository=REPO, channel=args.channel,
+    (out/'provenance.json').write_text(json.dumps(dict(schema=2, repository=REPO, channel=args.channel,
         sourceBranch=BRANCHES[args.channel], sourceCommit=commit, tag='v'+version, version=version,
         imageSha256=manifest['sha256']), indent=2)+'\n')
+    factory_package.prepare(out/'build', out, json.loads((out/'provenance.json').read_text()), manifest)
     (out/'release-notes.md').write_text(notes)
     (out/'SHA256SUMS').write_text(checksums(out))
     print(f'Prepared {version} at {out}. Qualify this exact image before publication.')
@@ -119,13 +126,15 @@ def validate_package(directory):
     require((directory/'SHA256SUMS').read_text() == checksums(directory), 'Release package checksum mismatch')
     p = json.loads((directory/'provenance.json').read_text())
     channel, version = p['channel'], p['version']
-    require(p['repository'] == REPO and p['schema'] == 1 and version_valid(version, channel), 'Invalid release provenance')
+    require(p['repository'] == REPO and p['schema'] in (1, 2) and version_valid(version, channel), 'Invalid release provenance')
     require(p['sourceBranch'] == BRANCHES[channel] and p['tag'] == 'v'+version
             and re.fullmatch('[a-f0-9]{40}', p['sourceCommit']), 'Invalid source or tag')
     manifest = json.loads((directory/'manifest.json').read_text())
     require(manifest['targetVersion'] == version and manifest['sha256'] == p['imageSha256']
             and hashlib.sha256((directory/'ember-link.bin').read_bytes()).hexdigest() == p['imageSha256'], 'Image metadata mismatch')
     require(json.loads((directory/'link-releases.json').read_text()) == catalog([manifest], channel), 'Wrong channel catalog')
+    if p['schema'] == 2:
+        factory_package.validate(directory, p, manifest)
     return p, manifest
 
 
@@ -144,7 +153,7 @@ def draft(args):
     # Existing releases/tags are never silently replaced by this command.
     existing = git('ls-remote', '--tags', 'origin', 'refs/tags/'+p['tag'])
     require(not existing, 'Release tag already exists; never reuse a published version')
-    gh('release', 'create', p['tag'], *[args.package/name for name in ASSETS], '--repo', REPO,
+    gh('release', 'create', p['tag'], *[args.package/name for name in assets(args.package)], '--repo', REPO,
        '--target', p['sourceCommit'], '--title', 'Ember Link '+p['version'], '--notes-file', args.package/'release-notes.md',
        '--draft', '--latest=false', *(['--prerelease'] if p['channel'] == 'dev' else []))
     print('Draft created. It does not change either update feed.')
@@ -162,13 +171,15 @@ def validate_release(info, p):
 def check_assets(directory, tag):
     with tempfile.TemporaryDirectory() as temp:
         gh('release', 'download', tag, '--repo', REPO, '--dir', temp)
-        for name in ASSETS:
+        for name in assets(directory):
             require((Path(temp)/name).read_bytes() == (directory/name).read_bytes(), 'Uploaded asset differs: '+name)
 
 
 def publish(args):
     require(args.qualified, 'Pass --qualified only after recording hardware qualification')
     p = checked_package(args.package)
+    require(p['schema'] == 1 or getattr(args, 'factory_qualified', False),
+            'Record fresh-board installation and pass --factory-qualified before publishing a factory package')
     info = release_info(p['tag']); validate_release(info, p)
     require(info['isDraft'], 'Already published; do not mutate immutable release assets')
     check_assets(args.package, p['tag'])
@@ -181,16 +192,26 @@ def publish(args):
           else 'Published prerelease. Run recommend-dev separately to offer it to opted-in testers.')
 
 
+def sync_installer():
+    try:
+        gh('workflow', 'run', 'installer.yml', '--repo', REPO, '--ref', 'main')
+    except subprocess.CalledProcessError:
+        print('Channel metadata is saved, but installer deployment did not start. Retry the Browser installer workflow on main.', file=sys.stderr)
+
+
 def update_dev(value, message):
     body = json.loads(gh('api', f'repos/{REPO}/contents/dev.json?ref={FEED_BRANCH}'))
     current = json.loads(base64.b64decode(body['content']))
     require(current.get('channel') == 'dev', 'Unexpected dev feed; stop and inspect')
     if current == value:
-        print('Dev recommendation already matches.'); return
+        print('Dev recommendation already matches.');
+        sync_installer()
+        return
     gh('api', '--method', 'PUT', f'repos/{REPO}/contents/dev.json', '--input', '-', payload=dict(
         message=message, branch=FEED_BRANCH, sha=body['sha'],
         content=base64.b64encode((json.dumps(value, indent=2)+'\n').encode()).decode()))
     print('Development feed updated. Raw GitHub downloads may be cached for several minutes.')
+    sync_installer()
 
 
 def recommend(args):
@@ -212,7 +233,9 @@ def main():
     p.add_argument('--key', type=Path, required=True); p.add_argument('--out', type=Path, required=True); p.add_argument('--notes-file', type=Path, required=True)
     for name in ('draft', 'publish', 'recommend-dev'):
         p = sub.add_parser(name); p.add_argument('package', type=Path)
-        if name == 'publish': p.add_argument('--qualified', action='store_true')
+        if name == 'publish':
+            p.add_argument('--qualified', action='store_true')
+            p.add_argument('--factory-qualified', action='store_true')
     sub.add_parser('withdraw-dev')
     a = parser.parse_args()
     try:

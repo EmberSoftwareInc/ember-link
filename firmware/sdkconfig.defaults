@@ -47,3 +47,6 @@ CONFIG_MBEDTLS_CERTIFICATE_BUNDLE=y
 CONFIG_MBEDTLS_CERTIFICATE_BUNDLE_DEFAULT_FULL=y
 # Accept valid cross-signed chains using a root already in the trusted bundle.
 CONFIG_MBEDTLS_CERTIFICATE_BUNDLE_CROSS_SIGNED_VERIFY=y
+
+# Read/set the microSD filesystem volume label in USB maintenance.
+CONFIG_FATFS_USE_LABEL=y

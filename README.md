@@ -17,9 +17,15 @@ records describe their original builds, not the current qualification status.
 
 ## Build your own
 
-Start with the [DIY build and installation guide](docs/diy-build-guide.md) for
-the parts list, card preparation, ESP-IDF setup, flashing, Wi-Fi configuration,
-and the separate requirements for cloud enrollment.
+Use the [browser installer](https://embersoftwareinc.github.io/ember-link/) for
+a qualified prebuilt first installation when available, or start with the
+[DIY quick start](docs/diy-quick-start.md) for the parts,
+firmware installation path, guided Wi-Fi setup in Bridge, and your first local
+transfer. No Ember account is needed for that local workflow.
+
+The [full build and installation guide](docs/diy-build-guide.md) contains the
+build commands, manual setup alternatives, recovery instructions, and separate
+requirements for cloud enrollment.
 
 ## USB setup and machine use
 

@@ -2,6 +2,9 @@
 #include "display.h"
 #include "display_cloud.h"
 #include "usb_setup.h"
+#include "storage.h"
+#include "esp_random.h"
+#include "esp_timer.h"
 
 #include <string.h>
 
@@ -39,6 +42,10 @@ static const char *TAG = "usb_setup";
 #define PROVISION_WAIT_MS 40000
 
 static SemaphoreHandle_t s_rx_signal; // "the RX FIFO has data" latch
+static volatile uint32_t s_session_generation;
+static char s_card_challenge[33];
+static uint32_t s_challenge_session;
+static int64_t s_challenge_until;
 static volatile bool s_new_session;   // DTR rose: a fresh host connection
 
 static SemaphoreHandle_t s_prov_done;
@@ -61,6 +68,7 @@ static void on_cdc_line_state(int itf, cdcacm_event_t *event)
     if (event->line_state_changed_data.dtr) {
         tud_cdc_n_write_clear(CDC_ITF);
         tud_cdc_n_read_flush(CDC_ITF);
+        s_session_generation++;
         s_new_session = true;
         xSemaphoreGive(s_rx_signal); // wake the worker so it resets promptly
     }
@@ -204,6 +212,9 @@ static void cmd_info(const cJSON *request)
 
     cJSON *body = response_for(request, true);
     display_settings_add_json(body);
+    cJSON_AddNumberToObject(body, "cardPreparationProtocolVersion", 1);
+    cJSON_AddNumberToObject(body, "cardLabelProtocolVersion", 1);
+    cJSON_AddBoolToObject(body, "cardMaintenance", usb_mode_is_card_maintenance());
     cJSON_AddStringToObject(body, "name", EMBER_LINK_NAME);
     cJSON_AddStringToObject(body, "deviceName", name);
     cJSON_AddStringToObject(body, "version", EMBER_LINK_VERSION);
@@ -458,6 +469,113 @@ static void cmd_factory_reset(const cJSON *request)
     xTaskCreate(reboot_later, "reboot", 2048, NULL, 5, NULL);
 }
 
+/* --- USB-only card maintenance -------------------------------------------- */
+
+static void maintenance_reboot(void *arg)
+{
+    vTaskDelay(pdMS_TO_TICKS(1500));
+    usb_mode_enter_card_maintenance();
+}
+
+static void cmd_card_maintenance(const cJSON *request)
+{
+    const cJSON *ejected = cJSON_GetObjectItemCaseSensitive(request, "driveEjected");
+    if (!usb_mode_is_setup() || !cJSON_IsTrue(ejected)) {
+        reply_error(request, "eject_required", "safely eject the drive before entering card maintenance");
+        return;
+    }
+    ota_status_t update; ota_get_status(&update);
+    if (update.pending_verify) { reply_error(request, "boot_unconfirmed", "wait for the new firmware to confirm a healthy boot before maintenance"); return; }
+    if (!operation_begin()) { reply_error(request, "busy", "a transfer or update is running"); return; }
+    // Hold the gate through reboot. No irreversible operation is performed here.
+    if (xTaskCreate(maintenance_reboot, "card_reboot", 2048, NULL, 5, NULL) != pdPASS) {
+        operation_end(); reply_error(request, "no_memory", "could not enter maintenance"); return;
+    }
+    cJSON *body = response_for(request, true);
+    cJSON_AddBoolToObject(body, "rebooting", true);
+    send_line(body);
+}
+
+static void cmd_card_status(const cJSON *request)
+{
+    card_info_t info;
+    storage_card_info(&info);
+    cJSON *body = response_for(request, true);
+    cJSON_AddStringToObject(body, "serial", serial());
+    cJSON_AddBoolToObject(body, "maintenance", usb_mode_is_card_maintenance());
+    cJSON_AddBoolToObject(body, "present", info.present);
+    cJSON_AddBoolToObject(body, "readable", info.readable);
+    cJSON_AddBoolToObject(body, "fat32", info.fat32);
+    cJSON_AddBoolToObject(body, "canFormat", info.can_format);
+    cJSON_AddBoolToObject(body, "canRename", info.fat32);
+    cJSON_AddStringToObject(body, "label", info.label);
+    cJSON_AddNumberToObject(body, "capacityBytes", (double)info.capacity_bytes);
+    s_card_challenge[0] = 0;
+    if (usb_mode_is_card_maintenance() && info.present && (info.can_format || info.fat32)) {
+        uint8_t random[16]; esp_fill_random(random, sizeof(random));
+        for (size_t i = 0; i < sizeof(random); i++)
+            snprintf(s_card_challenge + 2 * i, 3, "%02x", random[i]);
+        s_challenge_session = s_session_generation;
+        s_challenge_until = esp_timer_get_time() + 120000000; // two minutes
+        cJSON_AddStringToObject(body, "challenge", s_card_challenge);
+    }
+    send_line(body);
+}
+
+static bool card_confirmation(const cJSON *request, const char *action)
+{
+    const cJSON *confirm = cJSON_GetObjectItemCaseSensitive(request, "confirm");
+    const cJSON *challenge = cJSON_GetObjectItemCaseSensitive(request, "challenge");
+    const cJSON *device = cJSON_GetObjectItemCaseSensitive(request, "serial");
+    bool allowed = usb_mode_is_card_maintenance() &&
+        cJSON_IsString(confirm) && !strcmp(confirm->valuestring, action) &&
+        cJSON_IsString(device) && !strcmp(device->valuestring, serial()) &&
+        cJSON_IsString(challenge) && s_card_challenge[0] &&
+        !strcmp(challenge->valuestring, s_card_challenge) &&
+        s_challenge_session == s_session_generation && esp_timer_get_time() < s_challenge_until;
+    s_card_challenge[0] = 0; // single-use, including failed attempts
+    return allowed;
+}
+
+static void cmd_card_format(const cJSON *request)
+{
+    if (!card_confirmation(request, "ERASE_MICROSD")) {
+        reply_error(request, "confirmation_required", "recheck this card and explicitly approve erasing it"); return;
+    }
+    if (!operation_begin()) { reply_error(request, "busy", "a transfer or update is running"); return; }
+    display_notice("Preparing card", false);
+    esp_err_t err = storage_format_card();
+    operation_end();
+    if (err != ESP_OK) {
+        display_notice("Card format failed", true);
+        reply_error(request, "format_failed", "card preparation failed; reconnect and recheck before retrying");
+        return;
+    }
+    display_notice("Card ready", false);
+    cJSON *body = response_for(request, true);
+    cJSON_AddBoolToObject(body, "verified", true);
+    cJSON_AddStringToObject(body, "filesystem", "FAT32");
+    cJSON_AddStringToObject(body, "label", CARD_VOLUME_LABEL);
+    send_line(body);
+}
+
+static void cmd_card_rename(const cJSON *request)
+{
+    if (!card_confirmation(request, "RENAME_MICROSD")) {
+        reply_error(request, "confirmation_required", "recheck this card and approve renaming it"); return;
+    }
+    if (!operation_begin()) { reply_error(request, "busy", "a transfer or update is running"); return; }
+    esp_err_t err = storage_rename_card();
+    operation_end();
+    if (err != ESP_OK) {
+        reply_error(request, "rename_failed", "could not verify the card name; recheck before retrying"); return;
+    }
+    cJSON *body = response_for(request, true);
+    cJSON_AddBoolToObject(body, "verified", true);
+    cJSON_AddStringToObject(body, "label", CARD_VOLUME_LABEL);
+    send_line(body);
+}
+
 /* --- worker ---------------------------------------------------------------- */
 
 static void handle_line(const char *line)
@@ -470,6 +588,18 @@ static void handle_line(const char *line)
     const cJSON *cmd = cJSON_GetObjectItem(request, "cmd");
     if (!cJSON_IsString(cmd)) {
         reply_error(request, "cmd_required", "missing \"cmd\"");
+    } else if (usb_mode_is_card_maintenance() &&
+               strcmp(cmd->valuestring, "info") && strcmp(cmd->valuestring, "card_status") &&
+               strcmp(cmd->valuestring, "card_format") && strcmp(cmd->valuestring, "card_rename")) {
+        reply_error(request, "card_maintenance", "unplug and reconnect normally to leave card maintenance");
+    } else if (strcmp(cmd->valuestring, "card_status") == 0) {
+        cmd_card_status(request);
+    } else if (strcmp(cmd->valuestring, "card_maintenance") == 0) {
+        cmd_card_maintenance(request);
+    } else if (strcmp(cmd->valuestring, "card_rename") == 0) {
+        cmd_card_rename(request);
+    } else if (strcmp(cmd->valuestring, "card_format") == 0) {
+        cmd_card_format(request);
     } else if (strcmp(cmd->valuestring, "info") == 0) {
         cmd_info(request);
     } else if (strcmp(cmd->valuestring, "cloud_status") == 0) {

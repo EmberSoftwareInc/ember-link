@@ -1,0 +1,59 @@
+name: Browser installer
+on:
+  push:
+    branches: [main, release-channels]
+    paths:
+      - 'installer/**'
+      - 'tools/build_installer.py'
+      - 'tools/factory_package.py'
+      - 'tools/release.py'
+      - '.github/workflows/installer.yml'
+      - 'dev.json'
+  release:
+    types: [published, released, edited, deleted]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: browser-installer-pages
+  cancel-in-progress: false
+jobs:
+  site:
+    if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: pip install esptool==5.1.0
+      - run: npm ci --prefix installer
+      - run: npm test --prefix installer
+      - run: python -m unittest discover -s tests -p 'test_*.py' -v
+      - run: npm run build --prefix installer
+      - name: Assemble approved release packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python tools/build_installer.py
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: installer/dist
+  deploy:
+    needs: site
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy installer
+        id: deployment
+        uses: actions/deploy-pages@v4
