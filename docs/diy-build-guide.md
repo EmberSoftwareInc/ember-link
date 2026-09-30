@@ -1,7 +1,8 @@
 # Build your own Ember Link
 
 This guide covers buying the parts, installing firmware, checking the USB drive,
-and configuring Wi-Fi. It targets **Ember Link 0.3.0-dev**, the **original LILYGO
+and configuring Wi-Fi. The current qualified stable baseline is **Ember Link 0.3.6**
+([qualification record](release-qualification-0.3.6.md)). It targets the **original LILYGO
 T-Dongle-S3**, and **ESP-IDF 6.0.2**. No soldering or custom PCB is required.
 
 Ember Link presents a microSD card as a USB flash drive to an embroidery machine.
@@ -56,7 +57,7 @@ external LED, or Ember Bridge installation for these instructions.
 2. In your computer's disk utility, select the **microSD card**, not a computer
    disk. Create a single FAT32 partition with an MBR partition map as a starting
    configuration, subject to your machine's requirements. Do not use exFAT,
-   NTFS, or APFS. FAT16 was readable on the Mac but failed the Brother NQ1700E test. A freshly formatted FAT32 card passed its design-preview test with the isolated storage-only USB diagnostic firmware; cloud-enabled Link still needs this compatibility change integrated and validated.
+   NTFS, or APFS. FAT16 was readable on the Mac but failed the Brother NQ1700E test. Cloud-enabled stable 0.3.6 passed saved-design preview on the Brother NQ1700E with a FAT32 card and the machine stayed responsive. Other machine/card combinations still need validation.
 3. Copy a small file onto the card, read it back, then safely eject it.
 4. With the dongle unplugged, insert the card using the original board's slot
    and orientation shown in LILYGO's hardware documentation. Do not force it.
@@ -110,16 +111,21 @@ From a directory without spaces, clone and enter the repository:
 ```sh
 git clone https://github.com/EmberSoftwareInc/ember-link.git
 cd ember-link
+git switch --detach v0.3.6
 ```
 
-You need GitHub access while this repository is private. These instructions
-build from source; they do not assume a published prebuilt firmware release or
-browser flasher. Run the following commands from the **repository root**.
+The firmware repository is public. These instructions build the stable source
+with your own signing key. Published application images are update images, not
+complete first-install flash bundles. Run commands from the **repository root**.
+Use the [release lifecycle](release-lifecycle.md) for official stable/dev publishing;
+checking out `dev` alone does not select an update channel on your device.
 
 ### Create your own firmware signing key once
 
 The build signs updates with a private RSA-3072 key. Keep using the same key for
-future builds intended to update this dongle wirelessly. Store a private backup;
+future builds intended to update this dongle wirelessly. Official Stable and
+Development images use Ember’s production key, so a self-signed DIY installation
+will not accept them as routine signed updates. Store a private backup;
 do not upload the key to GitHub or share it with the cloud service.
 
 **macOS/Linux (bash or zsh):**
@@ -259,7 +265,7 @@ Type or paste each JSON command on one line, then press Enter:
 {"id":1,"cmd":"info"}
 ```
 
-The response should have `ok:true`, `name:"Ember Link"`, `version:"0.3.1-dev"`, `usbMode:"setup"`,
+The response should have `ok:true`, `name:"Ember Link"`, `version:"0.3.6"` (or the version you built), `usbMode:"setup"`,
 `usbProtocolVersion:1`, `setupProtocolVersion:1`, a serial number, and `wifi` and
 `cloud` objects. A fresh DIY board normally reports `cloud.configured:false`.
 That is expected until enrollment. A temporarily busy cloud worker may return
@@ -328,11 +334,13 @@ briefly disconnects/reconnects its USB storage so the host can reread the card.
 Do not send or replace files while the machine is reading from it; some machines
 may require reopening the USB browser or reinserting the dongle.
 
-The physical smoke test covered a computer and one small FAT16 card. It did not
-certify embroidery-machine compatibility, all card capacities, or cloud delivery.
-See [the recorded test](hardware-smoke-test-2026-09-20.md) and
-[hardware validation checklist](hardware-validation.md). Existing Ember Bridge
-releases are not guaranteed compatible with the new Ember Link identity.
+Stable 0.3.6 was checked on a LilyGO T-Dongle-S3 with FAT32 storage and a Brother
+NQ1700E: a saved design previewed and the machine remained responsive. This is
+not certification of other machines, all card capacities, or stitching. See the
+[current qualification record](release-qualification-0.3.6.md) and
+[hardware validation checklist](hardware-validation.md). Current Ember Bridge
+releases support Link setup and local transfers; older EmberConnect-era builds
+may not support the new identity.
 
 ## 8. Cloud setup
 
