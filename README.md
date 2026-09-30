@@ -174,3 +174,9 @@ cloud identity and unsettled receipts. It does not unclaim the server-side owner
 The architecture and roadmap include future work. The implemented protocol is
 authoritative for this development iteration. The repository is hosted at
 [EmberSoftwareInc/ember-link](https://github.com/EmberSoftwareInc/ember-link).
+
+## License
+
+Ember Link is open source under the [MIT License](LICENSE). Third-party code
+and dependencies retain their own licenses and copyright notices. See
+[third-party notices](THIRD_PARTY_NOTICES.md) for the LilyGO display attribution.
