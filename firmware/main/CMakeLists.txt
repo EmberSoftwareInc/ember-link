@@ -17,6 +17,8 @@ idf_component_register(
         "device_name.c"
         "led.c"
         "storage.c"
+        "card_fs.c"
+        "card_layout.c"
         "usb_setup.c"
         "usb_mode.c"
         "usb_mode_state.c"

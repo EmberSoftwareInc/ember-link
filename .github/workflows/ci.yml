@@ -32,6 +32,25 @@ jobs:
         env:
           CC: clang
         run: python tests/run_native.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --prefix installer
+      - run: npm test --prefix installer
+      - run: npm run build --prefix installer
+      - name: Fetch matching ESP-IDF FatFs for formatter tests
+        uses: actions/checkout@v4
+        with:
+          repository: espressif/esp-idf
+          ref: 7101770dc6db2667b3c477cc31365dd1acd6db4e
+          path: .test-idf
+          sparse-checkout: components/fatfs/src
+          persist-credentials: false
+      - name: Formatter tests against real FatFs
+        env:
+          IDF_PATH: ${{ github.workspace }}/.test-idf
+          CC: clang
+        run: python tests/run_card_fs.py
       - name: Release lifecycle and catalog tests
         run: python -m unittest discover -s tests -p 'test_*.py' -v
 # Deliberately no release/signing/upload permissions or secrets. Publication is

@@ -32,3 +32,16 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## Browser installer dependencies
+
+The browser installer uses esptool-js (Apache-2.0), @noble/hashes (MIT),
+and their dependencies under their respective licenses. Versions are pinned in
+`installer/package-lock.json`. The website build includes the complete upstream
+license texts in `THIRD_PARTY_LICENSES.txt`, linked from its footer. These
+components are not relicensed under the project's MIT license.
+
+
+## Installer button photo
+
+`installer/assets/dongle-button.png` is the unmodified `images/product/png/T-Dongle-S3.png` from [Xinyuan-LilyGO/T-Dongle-S3](https://github.com/Xinyuan-LilyGO/T-Dongle-S3/blob/bb7654607d280fc2a1451d24abf6ed027287d416/images/product/png/T-Dongle-S3.png), commit `bb7654607d280fc2a1451d24abf6ed027287d416`. Copyright (c) 2022 Xinyuan-LilyGO, MIT. The license is retained in `installer/assets/LILYGO-LICENSE.txt` and the built installer’s third-party licenses. The button marker is a separate CSS overlay.

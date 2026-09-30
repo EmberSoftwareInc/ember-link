@@ -37,7 +37,7 @@ void display_state_view(const display_state_t *s, uint32_t now, int rssi, displa
     if (s->card != DISPLAY_CARD_READY) {
         display_state_text(v->title, s->card == DISPLAY_CARD_STARTING ? "Starting" : "Check SD card");
         display_state_text(v->line1, s->card == DISPLAY_CARD_STARTING ? "Preparing storage" : "Insert a FAT32 card");
-        display_state_text(v->line2, "USB storage needs a card");
+        display_state_text(v->line2, s->usb_setup ? "Open installer to repair" : "Double BOOT for setup");
         v->attention = s->card != DISPLAY_CARD_STARTING;
     } else if (s->active) {
         display_state_text(v->title, s->firmware ? "Updating" : "Receiving");

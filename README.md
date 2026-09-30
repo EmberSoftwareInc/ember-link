@@ -10,14 +10,22 @@ is `ember-link` and the display name is `Ember Link`. The current branch's versi
 is defined in [app_version.h](firmware/main/app_version.h). Legacy firmware/Bridge
 identity compatibility is not preserved.
 
-See the [0.3.2-dev validation record](docs/hardware-usb-modes-2026-09-28.md) for
-the current USB-mode integration checks and remaining hardware qualification.
+The latest qualified stable release is **0.3.7**. See its
+[qualification record](docs/release-qualification-0.3.7.md) for the exact image,
+browser installation, card preparation and Brother NQ1700E preview checks. Earlier validation
+records describe their original builds, not the current qualification status.
 
 ## Build your own
 
-Start with the [DIY build and installation guide](docs/diy-build-guide.md) for
-the parts list, card preparation, ESP-IDF setup, flashing, Wi-Fi configuration,
-and the separate requirements for cloud enrollment.
+Use the [browser installer](https://embersoftwareinc.github.io/ember-link/) for
+a qualified prebuilt first installation when available, or start with the
+[DIY quick start](docs/diy-quick-start.md) for the parts,
+firmware installation path, guided Wi-Fi setup in Bridge, and your first local
+transfer. No Ember account is needed for that local workflow.
+
+The [full build and installation guide](docs/diy-build-guide.md) contains the
+build commands, manual setup alternatives, recovery instructions, and separate
+requirements for cloud enrollment.
 
 ## USB setup and machine use
 
@@ -70,7 +78,8 @@ password is sent to the browser account API.
 
 WiFi provisioning, local HTTP transfers, USB setup, LEDs, and signed updates
 remain inherited foundations. Enrollment automation, live cloud byte progress,
-cloud firmware distribution, and remote file management are deferred.
+production cloud firmware distribution, and remote file management remain separate work.
+The reference backend has exercised signed cloud firmware delivery on hardware.
 
 ## Release workflow
 
@@ -92,12 +101,13 @@ idf.py -C firmware build
 ```
 
 Signing keys and build output are ignored by Git. A developer key produces an
-image for development units; production signing is a separate concern. No
+image trusted by your own DIY units. This is separate from Ember’s official
+Development release channel, which uses the same production key as Stable. No
 signing key from EmberConnect is included. The image is
 `firmware/build/ember-link.bin`. See the [DIY guide](docs/diy-build-guide.md)
 for first-install and recovery steps.
-The earlier `0.3.0-dev` image was built and tested on the host; the recorded
-physical smoke test used `0.1.0-dev`.
+Use a stable release tag for a reproducible DIY build. The `dev` branch contains
+work toward the next release; a successful local build is not hardware qualification.
 
 ## Tests without hardware
 
@@ -170,3 +180,9 @@ cloud identity and unsettled receipts. It does not unclaim the server-side owner
 The architecture and roadmap include future work. The implemented protocol is
 authoritative for this development iteration. The repository is hosted at
 [EmberSoftwareInc/ember-link](https://github.com/EmberSoftwareInc/ember-link).
+
+## License
+
+Ember Link is open source under the [MIT License](LICENSE). Third-party code
+and dependencies retain their own licenses and copyright notices. See
+[third-party notices](THIRD_PARTY_NOTICES.md) for the LilyGO display attribution.

@@ -1,5 +1,7 @@
 #include "storage.h"
 #include "link_files.h"
+#include "card_fs.h"
+#include "usb_mode.h"
 
 #include <dirent.h>
 #include <string.h>
@@ -29,6 +31,9 @@ static const char *TAG = "storage";
 
 static tinyusb_msc_storage_handle_t s_storage = NULL;
 static SemaphoreHandle_t s_lock;
+static sdmmc_card_t *s_card;
+static card_info_t s_card_info;
+static bool s_ready;
 
 static storage_file_t s_files[STORAGE_MAX_FILES];
 static size_t s_file_count = 0;
@@ -111,6 +116,20 @@ static uint8_t const s_hs_config_desc[] = {
                           TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 500),
     TUD_MSC_DESCRIPTOR(ITF_NUM_MSC, 0, EPNUM_MSC_OUT, EPNUM_MSC_IN, 512),
     TUD_CDC_DESCRIPTOR(ITF_NUM_CDC, 4, EPNUM_CDC_NOTIF, 8, EPNUM_CDC_OUT, EPNUM_CDC_IN, 512),
+};
+#endif
+
+// Maintenance has no MSC interface at all: the host cannot race SD writes.
+static uint8_t const s_fs_maintenance_desc[] = {
+    TUD_CONFIG_DESCRIPTOR(1, 2, 0, TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN,
+                          TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 500),
+    TUD_CDC_DESCRIPTOR(0, 4, EPNUM_CDC_NOTIF, 8, EPNUM_CDC_OUT, EPNUM_CDC_IN, 64),
+};
+#if (TUD_OPT_HIGH_SPEED)
+static uint8_t const s_hs_maintenance_desc[] = {
+    TUD_CONFIG_DESCRIPTOR(1, 2, 0, TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN,
+                          TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 500),
+    TUD_CDC_DESCRIPTOR(0, 4, EPNUM_CDC_NOTIF, 8, EPNUM_CDC_OUT, EPNUM_CDC_IN, 512),
 };
 #endif
 
@@ -251,49 +270,49 @@ esp_err_t storage_init(bool provisioned, bool setup_mode, void (*waiting_for_car
     snprintf(s_serial, sizeof(s_serial), "%02X%02X%02X%02X%02X%02X",
              mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
-    sdmmc_card_t *card = NULL;
-    while (sd_card_init(&card) != ESP_OK) {
-        ESP_LOGE(TAG, "no usable SD card; retrying in 3s");
-        if (waiting_for_card_cb) {
-            waiting_for_card_cb();
+    if (!s_lock) return ESP_ERR_NO_MEM;
+    // Never wait forever for media: the BOOT gesture and USB recovery must work
+    // with no card or an unreadable filesystem. Card insertion requires restart.
+    esp_err_t err = sd_card_init(&s_card);
+    if (err == ESP_OK) (void)card_fs_inspect(s_card, &s_card_info);
+    bool maintenance = usb_mode_is_card_maintenance();
+    if (!maintenance && s_card_info.readable) {
+        tinyusb_msc_storage_config_t storage_cfg = {
+            .mount_point = TINYUSB_MSC_STORAGE_MOUNT_APP,
+            .fat_fs = {.base_path = BASE_PATH, .config.max_files = 4,
+                       .do_not_format = true, .format_flags = FM_FAT32},
+            .medium.card = s_card,
+        };
+        err = tinyusb_msc_new_storage_sdmmc(&storage_cfg, &s_storage);
+        if (err != ESP_OK) return err;
+        // The library may return success even if FAT mounting failed.
+        uint64_t total, free_bytes;
+        if (esp_vfs_fat_info(BASE_PATH, &total, &free_bytes) == ESP_OK &&
+            link_files_recover() == ESP_OK) {
+            sync_start_here(provisioned);
+            refresh_cache();
+            s_ready = true;
         }
-        vTaskDelay(pdMS_TO_TICKS(3000));
     }
-
-    // Start APP-mounted so we can build the cache before going live on USB.
-    tinyusb_msc_storage_config_t storage_cfg = {
-        .mount_point = TINYUSB_MSC_STORAGE_MOUNT_APP,
-        .fat_fs = {
-            .base_path = BASE_PATH,
-            .config.max_files = 4,
-            .format_flags = 0,
-        },
-        .medium.card = card,
-    };
-    esp_err_t err = tinyusb_msc_new_storage_sdmmc(&storage_cfg, &s_storage);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "msc storage create failed: %s", esp_err_to_name(err));
-        return err;
-    }
-
-    err = link_files_recover();
-    if (err != ESP_OK) return err;
-    sync_start_here(provisioned);
-    refresh_cache();
+    if (!s_ready && waiting_for_card_cb) waiting_for_card_cb();
+    // Preserve storage-only enumeration on machines. With unusable media, leave
+    // USB disconnected until the physical double-press enables setup.
+    if (!setup_mode && !s_ready) return ESP_OK;
+    bool cdc_only = maintenance || !s_ready;
 
     tinyusb_config_t tusb_cfg = TINYUSB_DEFAULT_CONFIG();
     s_device_desc.bDeviceClass = setup_mode ? TUSB_CLASS_MISC : 0;
     s_device_desc.bDeviceSubClass = setup_mode ? MISC_SUBCLASS_COMMON : 0;
     s_device_desc.bDeviceProtocol = setup_mode ? MISC_PROTOCOL_IAD : 0;
     tusb_cfg.descriptor.device = &s_device_desc;
-    tusb_cfg.descriptor.full_speed_config = setup_mode ? s_fs_config_desc : s_fs_storage_config_desc;
+    tusb_cfg.descriptor.full_speed_config = cdc_only ? s_fs_maintenance_desc : setup_mode ? s_fs_config_desc : s_fs_storage_config_desc;
     tusb_cfg.descriptor.string = s_string_desc;
     tusb_cfg.descriptor.string_count = sizeof(s_string_desc) / sizeof(s_string_desc[0]);
 #if (TUD_OPT_HIGH_SPEED)
     s_device_qualifier.bDeviceClass = s_device_desc.bDeviceClass;
     s_device_qualifier.bDeviceSubClass = s_device_desc.bDeviceSubClass;
     s_device_qualifier.bDeviceProtocol = s_device_desc.bDeviceProtocol;
-    tusb_cfg.descriptor.high_speed_config = setup_mode ? s_hs_config_desc : s_hs_storage_config_desc;
+    tusb_cfg.descriptor.high_speed_config = cdc_only ? s_hs_maintenance_desc : setup_mode ? s_hs_config_desc : s_hs_storage_config_desc;
     tusb_cfg.descriptor.qualifier = &s_device_qualifier;
 #endif
     err = tinyusb_driver_install(&tusb_cfg);
@@ -302,6 +321,7 @@ esp_err_t storage_init(bool provisioned, bool setup_mode, void (*waiting_for_car
         return err;
     }
 
+    if (!s_ready) return ESP_OK;
     err = tinyusb_msc_set_storage_mount_point(s_storage, TINYUSB_MSC_STORAGE_MOUNT_USB);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "expose to USB failed: %s", esp_err_to_name(err));
@@ -315,7 +335,13 @@ esp_err_t storage_init(bool provisioned, bool setup_mode, void (*waiting_for_car
 esp_err_t storage_acquire(void)
 {
     xSemaphoreTake(s_lock, portMAX_DELAY);
+    if (!s_ready || !s_storage || usb_mode_is_card_maintenance()) {
+        xSemaphoreGive(s_lock);
+        return ESP_ERR_INVALID_STATE;
+    }
     esp_err_t err = tinyusb_msc_set_storage_mount_point(s_storage, TINYUSB_MSC_STORAGE_MOUNT_APP);
+    uint64_t total, free_bytes;
+    if (err == ESP_OK) err = esp_vfs_fat_info(BASE_PATH, &total, &free_bytes);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "acquire failed: %s", esp_err_to_name(err));
         xSemaphoreGive(s_lock);
@@ -365,4 +391,30 @@ void storage_cached_stats(uint64_t *total_bytes, uint64_t *free_bytes)
     *total_bytes = s_total_bytes;
     *free_bytes = s_free_bytes;
     xSemaphoreGive(s_lock);
+}
+
+bool storage_ready(void) { return s_ready; }
+void storage_card_info(card_info_t *out)
+{
+    xSemaphoreTake(s_lock, portMAX_DELAY);
+    if (usb_mode_is_card_maintenance()) (void)card_fs_inspect(s_card, &s_card_info);
+    *out = s_card_info;
+    xSemaphoreGive(s_lock);
+}
+esp_err_t storage_format_card(void)
+{
+    if (!usb_mode_is_card_maintenance() || s_storage) return ESP_ERR_INVALID_STATE;
+    xSemaphoreTake(s_lock, portMAX_DELAY);
+    esp_err_t err = card_fs_format(s_card, &s_card_info);
+    xSemaphoreGive(s_lock);
+    return err;
+}
+
+esp_err_t storage_rename_card(void)
+{
+    if (!usb_mode_is_card_maintenance() || s_storage) return ESP_ERR_INVALID_STATE;
+    xSemaphoreTake(s_lock, portMAX_DELAY);
+    esp_err_t err = card_fs_rename(s_card, &s_card_info);
+    xSemaphoreGive(s_lock);
+    return err;
 }
