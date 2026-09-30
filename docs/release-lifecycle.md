@@ -225,19 +225,23 @@ again; it does not rebuild or replace that version's image. Withdrawal prevents
 new recommendations after caches refresh; it cannot cancel a previously approved
 in-progress update or uninstall firmware already running on a device.
 
-Returning a dongle to Stable will require an explicit install through the future
+Returning a dongle to Stable requires an explicit install through a
 channel-aware updater. Selecting a channel must never silently downgrade. Check
 settings-journal compatibility before offering an older stable image. For example,
 0.3.5 reads pre-upgrade legacy display preferences rather than the 0.3.6 journal.
 
-## Future consumer integration
+## Consumer integration
 
-Bridge should remember a local per-dongle selection and bind install approval to
-the selected channel, release ID and hash. The cloud service should store an
-owner-authorized per-device preference and enforce it both when listing releases
-and creating firmware jobs. Both default to stable, label development clearly,
-and retain all signature/board/layout checks. Their preferences are independent;
-channel choice is recommendation policy, not a firmware security boundary.
+The Bridge and standalone cloud example implementations support independent
+per-device Stable/Development preferences. Bridge stores its choice by hardware
+serial; the example stores an owner-authorized cloud preference. Both default to
+Stable, require Development opt-in, and retain signature/board/layout checks.
+Their install flows distinguish return-to-stable and require explicit replacement
+approval. Selecting a channel alone does not change installed firmware.
 
-The GitHub workflow here is ready for those consumers. No consumer channel selector
-or new Bridge application update channel is implemented by this repository setup.
+See Bridge's `docs/consumer-updates.md` and the private
+`ember-link-cloud-example/docs/release-channels.md` for implementation and rollout
+limits. The example imports verified packages manually; it does not automatically
+mirror GitHub recommendations or withdrawals. Production cloud integration and
+consumer release qualification remain separate steps. This does not introduce a
+Development update channel for the Bridge desktop application itself.
