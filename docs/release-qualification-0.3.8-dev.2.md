@@ -1,7 +1,7 @@
 # Ember Link 0.3.8-dev.2 development qualification
 
-Status: exact package qualified for opt-in development publication on 2026-10-02.
-Publication and Development recommendation verification are recorded below once complete.
+Status: published and recommended for opt-in Development testing on 2026-10-02.
+Stable remains unchanged.
 
 Adds authenticated local filesystem operations for Bridge's Files page: listing,
 create folder, move/rename and file/empty-folder deletion. Shared operations are
@@ -67,3 +67,22 @@ The production-connected device was not modified.
 Multi-day reliability, deliberate power cuts during FAT mutations, stitch-out,
 other embroidery machines and stable-package qualification remain untested.
 The first card's unresolved corruption remains a stable-promotion review item.
+
+## Publication verification
+
+- [v0.3.8-dev.2](https://github.com/EmberSoftwareInc/ember-link/releases/tag/v0.3.8-dev.2)
+  is a published prerelease, not latest Stable. Its tag targets the recorded
+  source commit; all ten uploaded assets matched the local qualified package.
+- The anonymous Development catalog matches the package catalog exactly. The
+  public application download matches the qualified SHA-256 above.
+- [Installer deployment](https://github.com/EmberSoftwareInc/ember-link/actions/runs/37072511936)
+  passed. The [public installer](https://embersoftwareinc.github.io/ember-link/)
+  advertises Development 0.3.8-dev.2 and Stable 0.3.7. Its factory manifest and all
+  four anonymous binary downloads match the qualified package byte for byte.
+- Firmware `main`, stable firmware 0.3.7, Bridge `main` and stable Bridge 0.5.2
+  were not changed. The matching Bridge work is on its feature branch in
+  [draft PR #4](https://github.com/EmberSoftwareInc/ember-bridge/pull/4), with a
+  locally packaged 0.5.3-dev.1 Apple Silicon macOS test app.
+
+Next: follow Bridge's documented multi-day reliability checklist on the verified
+second card. Passing this development gate does not approve stable promotion.
