@@ -3,15 +3,15 @@
   "releases": [
     {
       "schema": 1,
-      "releaseId": "link-0-3-7-dev-1",
-      "targetVersion": "0.3.7-dev.1",
+      "releaseId": "link-0-3-8-dev-1",
+      "targetVersion": "0.3.8-dev.1",
       "boardId": "lilygo-t-dongle-s3",
       "layoutId": "link-v1",
       "signingKeyId": "6d0a5aa1c94e21afb66d4985446c3446955c9593345ddf1ae161fb66a1c79455",
       "size": 1314816,
-      "sha256": "d423a869e71f1b5e914038bcf2d5b1d29b6db315205f8e2ff00ffb7df4a5feb3",
-      "notes": "Development channel qualification candidate, 0.3.7-dev.1.\n\nFirmware source differs from stable 0.3.6 only in its version declarations. Signed with the established production key for LilyGO T-Dongle-S3, layout link-v1.\n\nHardware checks completed: the local cloud example installed this exact image from stable 0.3.6 and returned to the exact stable 0.3.6 image. Both installations produced installed receipts and healthy-boot reports. Screen on, LED on, 180-degree orientation, and settings revision 6 were preserved. Cloud communication resumed.\n\nThis prerelease supports opt-in testing of the new channel selectors. Bridge download/install qualification is the next test. Machine preview and power-cut tests were not repeated on this development build; prior stable qualification is separate evidence. No new functionality or settings migration is introduced. No firmware installs automatically when selecting a channel.\n",
-      "url": "https://github.com/EmberSoftwareInc/ember-link/releases/download/v0.3.7-dev.1/ember-link.bin"
+      "sha256": "2c31e45a77b33f9a30c09f8a5e116efaba6cb1ca59e1ba22ad848883b94b21d9",
+      "notes": "# Ember Link 0.3.8-dev.1\n\nDevelopment prerelease for testing self-service cloud enrollment.\n\n- Adds USB enrollment tickets and on-device generation of private cloud credentials for fresh DIY devices.\n- Preserves a staged identity across interrupted requests and reboots, and prevents enrollment from overwriting an existing cloud identity.\n- Adds specific setup errors and safe cached progress while HTTPS requests are in flight.\n- Displays \"Not linked to an account\" for an unclaimed device and clarifies which settings factory reset preserves.\n\nRequires matching enrollment endpoints and browser integration; production Ember setup does not yet implement this new flow. Existing configured devices retain the existing account-linking and cloud protocols.\n\nFinish or reconcile a pending enrollment before downgrading. Older firmware does not understand its recovery journal. Account removal is a separate backend action; factory reset does not remove account ownership.\n\nUses the established production update signing key and link-v1 layout for the LILYGO T-Dongle-S3. Stable remains on 0.3.7. Qualification evidence is recorded separately for this exact signed image; this is not a stable release or a claim of broad machine compatibility.\n",
+      "url": "https://github.com/EmberSoftwareInc/ember-link/releases/download/v0.3.8-dev.1/ember-link.bin"
     }
   ],
   "channel": "dev"
