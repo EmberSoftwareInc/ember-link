@@ -1,6 +1,6 @@
 # Ember Link 0.3.8-dev.1 qualification
 
-Date: 2026-10-02. Status: exact candidate qualified for development publication.
+Date: 2026-10-02. Status: published development prerelease; Development recommendation and hosted installer verified.
 
 ## Exact package
 
@@ -35,7 +35,11 @@ Date: 2026-10-02. Status: exact candidate qualified for development publication.
 
 ## Publication
 
-Hardware qualification is complete. Prerelease publication, Development recommendation, and hosted installer parity verification are the remaining release operations. Stable must remain on 0.3.7.
+- Published [v0.3.8-dev.1](https://github.com/EmberSoftwareInc/ember-link/releases/tag/v0.3.8-dev.1) as a prerelease, with the tag pointing to the exact source commit above. All ten uploaded assets matched the qualified package before publication.
+- Updated only the Development recommendation. Anonymous catalog reads confirmed Development 0.3.8-dev.1 with the expected application hash, and Stable 0.3.7 unchanged. An anonymous application download matched the qualified image.
+- The [hosted browser installer](https://embersoftwareinc.github.io/ember-link/) advertises Stable 0.3.7 and Development 0.3.8-dev.1. Its Development factory manifest and all four downloadable images were compared byte-for-byte with the qualified package.
+- The first two Pages workflows passed, but the public site continued serving the earlier catalog. One installer-only redeployment was performed; [run 37034338575](https://github.com/EmberSoftwareInc/ember-link/actions/runs/37034338575) passed, and public parity then passed. Firmware assets and channel recommendations were not changed by that retry.
+- Firmware checks passed for the exact source commit ([run 37028795683](https://github.com/EmberSoftwareInc/ember-link/actions/runs/37028795683)) and the hardware qualification documentation commit. The temporary qualification backend and HTTPS tunnel were stopped.
 
 ## Scope
 
