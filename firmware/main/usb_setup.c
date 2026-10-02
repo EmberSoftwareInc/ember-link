@@ -223,6 +223,7 @@ static void cmd_info(const cJSON *request)
     cJSON_AddNumberToObject(body, "usbProtocolVersion", 1);
     cJSON_AddNumberToObject(body, "cloudProtocolVersion", 1);
     cJSON_AddNumberToObject(body, "setupProtocolVersion", 1);
+    cJSON_AddNumberToObject(body, "enrollmentProtocolVersion", 1);
     cJSON_AddItemToObject(body, "cloud", cloud_status());
     cJSON_AddBoolToObject(body, "provisioned", wifi_mgr_has_credentials());
 
@@ -464,7 +465,7 @@ static void cmd_factory_reset(const cJSON *request)
     auth_clear_all();
     device_name_clear();
     cJSON *body = response_for(request, true);
-    cJSON_AddStringToObject(body, "message", "wiped; rebooting into setup mode");
+    cJSON_AddStringToObject(body, "message", "Local settings reset; cloud disabled. Saved cloud identity and account link are retained. Files unchanged; rebooting into setup mode");
     send_line(body);
     xTaskCreate(reboot_later, "reboot", 2048, NULL, 5, NULL);
 }
@@ -606,6 +607,10 @@ static void handle_line(const char *line)
         cJSON *body=response_for(request,true);
         cJSON_AddItemToObject(body,"cloud",cloud_status());
         send_line(body);
+    } else if (strcmp(cmd->valuestring, "cloud_enroll") == 0) {
+        cloud_enroll_result_t result = cloud_enroll(request, serial());
+        if (result == CLOUD_ENROLL_OK) send_line(response_for(request, true));
+        else reply_error(request, cloud_enroll_error_code(result), cloud_enroll_error_message(result));
     } else if (strcmp(cmd->valuestring, "cloud_claim") == 0) {
         esp_err_t err = cloud_claim(request);
         if (err == ESP_OK) send_line(response_for(request, true));

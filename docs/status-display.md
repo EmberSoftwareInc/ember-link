@@ -12,6 +12,7 @@ change the BOOT button gestures. The status LED continues to work.
 | Card missing or initialization failed | Check SD card / Insert a FAT32 card | Disconnect power before checking the card. A filesystem/mount error may still trigger the existing restart behavior. |
 | Normal operation | Ready / Wi-Fi strong, fair, or weak | Wi-Fi signal is approximate. Cloud off is a normal local-only configuration. |
 | Cloud connected | Local + cloud ready | The most recent cloud poll succeeded; this is not a continuous connection guarantee. |
+| Cloud not linked | Not linked to an account | Cloud service is reachable, but the device has no account association. Local use remains available; link it through USB setup in Ember. |
 | Cloud unavailable | Local ready / Cloud down | Local Wi-Fi transfers remain available. Check the account/backend in Ember. |
 | Wi-Fi unavailable | Wi-Fi offline / Reconnecting | Existing USB files remain usable. |
 | Wi-Fi not configured | Wi-Fi setup / Use Ember or Bridge | Configure through the web app or Bridge. |

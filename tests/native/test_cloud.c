@@ -4,6 +4,17 @@
 #include <assert.h>
 #include "settings_fixture.h"
 
+static cloud_enrollment_t saved_enrollment, pending_enrollment;
+static cloud_config_t pending_config;
+static link_receipt_t pending_receipt;
+static bool have_enrollment;
+static int pending_kind;
+static bool fail_commit, ambiguous_commit, fail_config_write, fail_clear_write;
+static unsigned random_calls, enrollment_requests;
+static bool enrollment_mode, incomplete_response, inspect_busy_status;
+static unsigned busy_status_reads;
+static char first_candidate_token[65];
+static int64_t clock_us = 1000000;
 static cloud_config_t saved_config;
 static link_receipt_t saved_receipt;
 static bool have_config, have_receipt, fail_save, gate, update_pending, usb_during_poll;
@@ -15,6 +26,7 @@ static unsigned mutex_count;
 static int mutexes[8];
 struct test_http {
     bool api;
+    bool enrollment;
     int offset;
     const char *body;
     int len;
@@ -88,9 +100,15 @@ uint32_t esp_random(void)
 {
     return 0;
 }
+void esp_fill_random(void *buf, size_t len)
+{
+    assert(len == 32);
+    ++random_calls;
+    memset(buf, 0xcd, len);
+}
 int64_t esp_timer_get_time(void)
 {
-    return 1000000;
+    return clock_us;
 }
 esp_err_t esp_netif_sntp_init(const esp_sntp_config_t *c)
 {
@@ -176,30 +194,38 @@ esp_err_t nvs_open(const char *name, int mode, nvs_handle_t *h)
 esp_err_t nvs_set_blob(nvs_handle_t h, const char *key, const void *p, size_t n)
 {
     if (h==2) return settings_write(key,p,n);
-    if (fail_save)
-        return ESP_FAIL;
-    if (!strcmp(key, "config")) {
+    if (fail_save) return ESP_FAIL;
+    if (!strcmp(key, "enrollment")) {
+        assert(n == sizeof(saved_enrollment));
+        if (fail_clear_write && !((const cloud_enrollment_t *)p)->session_id[0]) return ESP_FAIL;
+        memcpy(&pending_enrollment, p, n);
+        pending_kind = 3;
+    } else if (!strcmp(key, "config")) {
         assert(n == sizeof(saved_config));
-        memcpy(&saved_config, p, n);
-        have_config = true;
+        if (fail_config_write) return ESP_FAIL;
+        memcpy(&pending_config, p, n);
+        pending_kind = 1;
     } else {
         assert(!strcmp(key, "receipt") && n == sizeof(saved_receipt));
-        memcpy(&saved_receipt, p, n);
-        have_receipt = true;
+        memcpy(&pending_receipt, p, n);
+        pending_kind = 2;
     }
     return ESP_OK;
 }
 esp_err_t nvs_get_blob(nvs_handle_t h, const char *key, void *p, size_t *n)
 {
     if (h==2) return settings_read(key,p,n);
-    if (!strcmp(key, "config")) {
-        if (!have_config)
-            return ESP_ERR_NVS_NOT_FOUND;
+    if (!strcmp(key, "enrollment")) {
+        if (!have_enrollment) return ESP_ERR_NVS_NOT_FOUND;
+        assert(*n == sizeof(saved_enrollment));
+        memcpy(p, &saved_enrollment, *n);
+    } else if (!strcmp(key, "config")) {
+        if (!have_config) return ESP_ERR_NVS_NOT_FOUND;
         assert(*n == sizeof(saved_config));
         memcpy(p, &saved_config, *n);
     } else {
-        if (!have_receipt)
-            return ESP_ERR_NVS_NOT_FOUND;
+        assert(!strcmp(key, "receipt"));
+        if (!have_receipt) return ESP_ERR_NVS_NOT_FOUND;
         assert(*n == sizeof(saved_receipt));
         memcpy(p, &saved_receipt, *n);
     }
@@ -208,11 +234,46 @@ esp_err_t nvs_get_blob(nvs_handle_t h, const char *key, void *p, size_t *n)
 esp_err_t nvs_commit(nvs_handle_t h)
 {
     if (h==2) return settings_commit();
-    return ESP_OK;
+    if (!fail_commit || ambiguous_commit) {
+        if (pending_kind == 1) { saved_config = pending_config; have_config = true; }
+        if (pending_kind == 2) { saved_receipt = pending_receipt; have_receipt = true; }
+        if (pending_kind == 3) { saved_enrollment = pending_enrollment; have_enrollment = true; }
+    }
+    pending_kind = 0;
+    return fail_commit ? ESP_FAIL : ESP_OK;
 }
 void nvs_close(nvs_handle_t h)
 {
     (void)h;
+}
+
+// Simulate USB reads while the cloud worker is inside blocking network I/O.
+static void inspect_network_status(const char *stage)
+{
+    if (!inspect_busy_status) return;
+    assert(*s_session); // A fresh status read is unavailable.
+    clock_us += 17000;
+    cJSON *status = cloud_status();
+    assert(cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(status, "busy")));
+    assert(cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(status, "cached")));
+    assert(cJSON_GetObjectItemCaseSensitive(status, "snapshotAgeMs")->valuedouble >= 17);
+    assert(!strcmp(string(cJSON_GetObjectItemCaseSensitive(status, "network"), "stage"), stage));
+    assert(!cJSON_GetObjectItemCaseSensitive(status, "receipt"));
+    if (enrollment_mode) {
+        assert(!strcmp(string(status, "state"), "enrolling"));
+        assert(!strcmp(string(status, "enrollmentState"), "registering"));
+        assert(!strcmp(string(status, "enrollmentSessionId"), "enroll-1"));
+        assert(!strcmp(string(status, "enrollmentDeviceId"), "link-50787d2c5a1c"));
+        assert(cJSON_IsFalse(cJSON_GetObjectItemCaseSensitive(status, "configured")));
+    } else {
+        assert(cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(status, "configured")));
+        assert(!strcmp(string(status, "deviceId"), "device-1"));
+    }
+    char *json = cJSON_PrintUnformatted(status);
+    assert(json && !strstr(json, "aaaaaaa") && !strstr(json, "bbbbbbb") && !strstr(json, "cdcdcd") &&
+           !strstr(json, "ticket") && !strstr(json, "token") && !strstr(json, "https://"));
+    free(json); cJSON_Delete(status);
+    ++busy_status_reads;
 }
 
 esp_http_client_handle_t esp_http_client_init(const esp_http_client_config_t *c)
@@ -221,7 +282,8 @@ esp_http_client_handle_t esp_http_client_init(const esp_http_client_config_t *c)
     struct test_http *h = calloc(1, sizeof(*h));
     assert(h);
     h->api = c->method == HTTP_METHOD_POST;
-    assert(h->api ? !strcmp(c->url, "https://api.example.com/v1/device/poll")
+    h->enrollment = enrollment_mode && h->api;
+    assert(h->api ? !strcmp(c->url, h->enrollment ? "https://api.example.com/v1/device/enroll" : "https://api.example.com/v1/device/poll")
                   : !strcmp(c->url, "https://files.example.com/design"));
     h->body = h->api ? reply : "abc";
     h->len = (int)strlen(h->body);
@@ -238,8 +300,9 @@ esp_err_t esp_http_client_set_header(esp_http_client_handle_t h, const char *key
 esp_err_t esp_http_client_open(esp_http_client_handle_t h, int len)
 {
     (void)len;
-    assert(h->api == h->authorized);
+    assert((h->api && !h->enrollment) == h->authorized);
     last_request[0] = 0;
+    inspect_network_status("connect");
     return open_result;
 }
 int esp_http_client_get_errno(esp_http_client_handle_t h) { (void)h; return 113; }
@@ -247,6 +310,7 @@ esp_err_t esp_http_client_get_and_clear_last_tls_error(esp_http_client_handle_t 
 { (void)h; *error = -123; *flags = 8; return ESP_OK; }
 int esp_http_client_write(esp_http_client_handle_t h, const char *p, int n)
 {
+    inspect_network_status("write");
     assert(h->api && n < (int)sizeof(last_request));
     memcpy(last_request, p, n);
     last_request[n] = 0;
@@ -254,6 +318,20 @@ int esp_http_client_write(esp_http_client_handle_t h, const char *p, int n)
 }
 int64_t esp_http_client_fetch_headers(esp_http_client_handle_t h)
 {
+    inspect_network_status("headers");
+    if (h->enrollment) {
+        ++enrollment_requests;
+        // Fake bootstrap backend observes only a durably staged credential.
+        assert(have_enrollment && saved_enrollment.candidate.token[0]);
+        cJSON *body = cJSON_Parse(last_request);
+        const char *token = string(body, "deviceToken");
+        assert(token && !strcmp(token, saved_enrollment.candidate.token));
+        assert(!strcmp(string(body, "ticket"), saved_enrollment.ticket));
+        assert(!strcmp(string(body, "deviceId"), "link-50787d2c5a1c"));
+        if (!first_candidate_token[0]) strcpy(first_candidate_token, token);
+        else assert(!strcmp(first_candidate_token, token)); // Retry never rotates key.
+        cJSON_Delete(body);
+    }
     return h->len;
 }
 int esp_http_client_get_status_code(esp_http_client_handle_t h)
@@ -262,6 +340,7 @@ int esp_http_client_get_status_code(esp_http_client_handle_t h)
 }
 int esp_http_client_read(esp_http_client_handle_t h, char *buf, int n)
 {
+    if (h->api) inspect_network_status("read");
     if (h->api && usb_during_poll) {
         usb_during_poll=false; assert(operation_begin());
         assert(display_settings_save(display_settings_defaults())==ESP_OK); operation_end();
@@ -275,7 +354,7 @@ int esp_http_client_read(esp_http_client_handle_t h, char *buf, int n)
 }
 bool esp_http_client_is_complete_data_received(esp_http_client_handle_t h)
 {
-    return h->offset == h->len;
+    return !incomplete_response && h->offset == h->len;
 }
 esp_err_t esp_http_client_cleanup(esp_http_client_handle_t h)
 {
@@ -366,9 +445,12 @@ static void check_settings_poll(void)
     settings_response(NULL,0,true,true,2); poll_cloud(); assert(!display_settings_pending());
 }
 
+#include "enrollment_cases.h"
+
 int main(void)
 {
     assert(display_settings_init()==ESP_OK);
+    check_enrollment();
     assert(cloud_init() == ESP_OK);
     cJSON *cfg =
         cJSON_Parse("{\"apiBaseUrl\":\"https://api.example.com/"
@@ -382,6 +464,16 @@ int main(void)
     free(text);
     cJSON_Delete(status);
     response(NULL, false);
+    inspect_busy_status = true; busy_status_reads = 0;
+    assert(xSemaphoreTake(s_session, 0) == pdTRUE);
+    poll_cloud();
+    publish_status(); xSemaphoreGive(s_session);
+    inspect_busy_status = false;
+    assert(busy_status_reads >= 4);
+    status = cloud_status();
+    assert(cJSON_IsFalse(cJSON_GetObjectItemCaseSensitive(status, "cached")));
+    assert(!strcmp(string(status, "state"), "online"));
+    cJSON_Delete(status);
     open_result = ESP_FAIL;
     poll_cloud();
     assert(!strcmp(s_network.stage, "connect") && s_network.error == ESP_FAIL);
