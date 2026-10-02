@@ -191,3 +191,10 @@ authoritative for this development iteration. The repository is hosted at
 Ember Link is open source under the [MIT License](LICENSE). Third-party code
 and dependencies retain their own licenses and copyright notices. See
 [third-party notices](THIRD_PARTY_NOTICES.md) for the LilyGO display attribution.
+
+## Local file management
+
+The local protocol supports folder browsing, create, rename, move and
+nonrecursive deletion for Bridge’s Files page. See
+[local file operations](docs/local-file-operations.md) for the contract, safety
+boundaries and qualification status. Cloud file management remains separate.

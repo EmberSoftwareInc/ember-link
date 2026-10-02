@@ -24,6 +24,7 @@
 #include "auth.h"
 #include "operation.h"
 #include "link_files.h"
+#include "local_files.h"
 #include "link_protocol.h"
 #include "device_name.h"
 #include "led.h"
@@ -141,6 +142,7 @@ static esp_err_t health_get(httpd_req_t *req)
     cJSON_AddStringToObject(body, "name", EMBER_LINK_NAME);
     cJSON_AddStringToObject(body, "deviceName", device_name);
     cJSON_AddStringToObject(body, "version", EMBER_LINK_VERSION);
+    cJSON_AddNumberToObject(body, "fileSystemProtocolVersion", 1);
     cJSON_AddStringToObject(body, "usbMode", usb_mode_name());
     cJSON_AddStringToObject(body, "serial", serial());
     return send_json(req, "200 OK", body);
@@ -162,6 +164,7 @@ static esp_err_t info_get(httpd_req_t *req)
     cJSON_AddStringToObject(body, "name", EMBER_LINK_NAME);
     cJSON_AddStringToObject(body, "deviceName", device_name);
     cJSON_AddStringToObject(body, "version", EMBER_LINK_VERSION);
+    cJSON_AddNumberToObject(body, "fileSystemProtocolVersion", 1);
     cJSON_AddStringToObject(body, "usbMode", usb_mode_name());
     cJSON_AddStringToObject(body, "serial", serial());
     cJSON_AddStringToObject(body, "ip", ip);
@@ -186,6 +189,39 @@ static esp_err_t files_get(httpd_req_t *req)
         cJSON_AddItemToArray(list, f);
     }
     return send_json(req, "200 OK", body);
+}
+
+/* Explicit browsing may remount the card; never poll this route. */
+static esp_err_t filesystem_post(httpd_req_t *req)
+{
+    // Unlike the captive setup endpoints, file management always needs pairing.
+    if (!auth_check(req)) return send_error(req,"401 Unauthorized","unauthorized","Pair with Link first");
+    if (req->content_len <= 0 || req->content_len > 1024)
+        return send_error(req,"400 Bad Request","invalid_request","Invalid file request");
+    char text[1025]; size_t got=0;
+    while (got<(size_t)req->content_len) {
+        int n=httpd_req_recv(req,text+got,req->content_len-got);
+        if(n<=0)return ESP_FAIL;
+        got+=(size_t)n;
+    }
+    text[got]=0;
+    cJSON *request = strstr(text,"\\u0000") ? NULL : cJSON_ParseWithLengthOpts(text,got+1,NULL,true);
+    if(!cJSON_IsObject(request) || !cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(request,"confirmedIdle"))) {
+        cJSON_Delete(request);
+        return send_error(req,"400 Bad Request","confirmation_required","Confirm the machine is idle before browsing or changing files");
+    }
+    if(!operation_begin()) { cJSON_Delete(request); return send_error(req,"409 Conflict","busy","Another operation is running"); }
+    if(!storage_ready() || storage_acquire()!=ESP_OK) {
+        operation_end(); cJSON_Delete(request);
+        return send_error(req,"409 Conflict","storage_unavailable","Check the card and retry when idle");
+    }
+    const char *error=NULL;
+    cJSON *result=local_files_execute(request,&error);
+    cJSON_Delete(request);
+    esp_err_t release=storage_release(); operation_end();
+    if(release!=ESP_OK) { cJSON_Delete(result); return send_error(req,"500 Internal Server Error","result_unknown","Check the card before trying again"); }
+    if(!result)return send_error(req,"409 Conflict",error?error:"storage_error","The operation could not be confirmed. Refresh the folder and check the result before trying again.");
+    return send_json(req,"200 OK",result);
 }
 
 /* --- POST /api/upload?filename=X ----------------------------------------- */
@@ -600,6 +636,7 @@ esp_err_t http_api_start(void)
         {.uri = "/api/health", .method = HTTP_GET, .handler = health_get},
         {.uri = "/api/info", .method = HTTP_GET, .handler = info_get},
         {.uri = "/api/files", .method = HTTP_GET, .handler = files_get},
+        {.uri = "/api/fs", .method = HTTP_POST, .handler = filesystem_post},
         {.uri = "/api/upload", .method = HTTP_POST, .handler = upload_post},
         {.uri = "/api/files/*", .method = HTTP_DELETE, .handler = file_delete},
         {.uri = "/api/wifi", .method = HTTP_GET, .handler = wifi_get},

@@ -12,6 +12,7 @@ idf_component_register(
         "cloud_protocol.c"
         "link_protocol.c"
         "link_files.c"
+        "local_files.c"
         "operation.c"
         "auth.c"
         "device_name.c"
