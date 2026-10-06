@@ -1,189 +1,127 @@
 # Ember Link 0.3.8 stable qualification
 
-Status: corrected candidate built; one-time spare recovery completed; final cloud re-enrollment and delivery checks pending on 2026-10-06.
+Status: final candidate hardware checks completed on 2026-10-06. GitHub push and
+publication require explicit operator approval; no 0.3.8 release is published yet.
+The limitations below remain open or explicitly deferred.
 
-## Scope
+## Release scope and package
 
-Promotes self-service cloud enrollment, cloud removal/re-enrollment recovery,
-and authenticated local filesystem operations for Bridge from 0.3.8-dev.2.
-Removes automatic first-run setup shortcut creation following factory qualification.
-The stable version has a new binary and requires its own exact-package checks.
+Promotes self-service cloud enrollment and authenticated local filesystem
+operations for Bridge from 0.3.8-dev.2. Stops automatically creating
+`START HERE.html`; existing cleanup after Wi-Fi setup remains for older helpers.
+Normal removal/re-linking preserves device identity. Recovery after a complete
+flash erase remains a separate, deferred backend capability.
 
-## Supporting development-image evidence
-
-See [dev.1 qualification](release-qualification-0.3.8-dev.1.md) and
-[dev.2 qualification](release-qualification-0.3.8-dev.2.md) for interruption,
-factory installation, local file operations, and card integrity results.
-
-Production cloud testing on 2026-10-06 used the spare LILYGO T-Dongle-S3,
-0.3.8-dev.2, the verified second FAT32 card, and a Brother NQ1700E:
-
-- Enrollment and removal CORS preflights passed.
-- USB self-service enrollment completed and the account reported Link online.
-- Cloud LED settings were acknowledged and physically observed; restored on.
-- Cloud design delivery completed and the Brother previewed the design.
-- Account removal completed; the saved design remained readable on the Brother.
-- Same-device enrollment succeeded again, followed by acknowledged cloud settings.
-- After unplugging, the account correctly reported offline. A queued LED setting
-  remained pending, then applied after normal reconnect without USB setup.
-- Wi-Fi and cloud identity survived restart. Another cloud delivery succeeded;
-  both earlier and new designs previewed with the Brother responsive.
-
-New design transfers require online status in the current web/backend contract.
-Offline settings queuing was tested; offline creation of design jobs was not.
-These are development-image results, not stable-image qualification.
-
-## First candidate checks (superseded; not publication approval)
-
-- [x] Record source commit, image hash, size, and production key ID.
-- [x] Native sanitizer, real FatFs, installer, and release-tool checks pass.
-- [x] Signed update installs and confirms healthy boot on the spare.
-- [x] Wi-Fi, account identity, name/display settings, and all 73 visible card files are preserved.
-- [x] Confirm retained local Bridge pairing on the stable image.
-- [x] Production cloud command and design delivery succeed on 0.3.8.
-- [x] Brother previews the design and remains responsive.
-- [ ] Exact factory package passes browser install and healthy boot checks.
-- [ ] Verify published assets and Stable feed against the qualified package.
-
-## Limits and deferred checks
-
-The user explicitly deferred the longer powered-on reliability test on
-2026-10-06. It is not a passed gate. Multi-day reliability, power cuts during FAT
-mutations, stitch-out, and other machine models remain untested.
-The first test card's corruption remains unexplained, as documented in
-[local filesystem operations](local-file-operations.md). Successful second-card
-checks do not establish the cause or prove universal card/machine compatibility.
-Factory installation resets internal settings and identity; perform it only on
-the backed-up spare with explicit operator coordination. The regular dongle
-must not be modified.
-
-## Candidate package identity
-
-- Source commit: `74b6451baa2b295047e749a30130e695ffd3c5bb` on `main`.
-- Application size: 1,314,816 bytes.
-- SHA-256: `fbb18da6a097e6eab6cdae21600a89ac11985e64ea82970b50add303f16d5297`.
+- Source: `f7ffaeb7d7a69436b0adc9359218d1a9a1fe693b` on `main`.
+- Version/channel: `0.3.8`, Stable; application size: 1,314,816 bytes.
+- Application SHA-256:
+  `57dda28cfc0dec1052f4a8fd0071117e87f663b4a5ce3936a6ceae5d6b223466`.
 - Production verification key ID:
   `6d0a5aa1c94e21afb66d4985446c3446955c9593345ddf1ae161fb66a1c79455`.
-- ESP-IDF 6.0.2 clean build and production signature verification passed.
-- Native production-C ASan/UBSan suites, real FatFs formatter tests,
-  20 Python release-tool tests, and 11 installer tests passed; installer built.
-- Source comparison to `v0.3.8-dev.2` shows no firmware logic changes, only
-  the two version declarations. Documentation changes do not alter the binary.
-- Before installation, spare identity and healthy dev.2 boot verified; Wi-Fi,
-  active production cloud connection, and screen/LED configuration recorded
-  privately. Second card mounted read-only for backup: 146 files including host
-  metadata, 73 visible files. Card safely unmounted before the signed update.
+- Fresh ESP-IDF 6.0.2 build; signature, manifest, factory layout, package checksums,
+  source version and channel verified. Only allowlisted public assets are packaged.
+- Compared with dev.2, firmware changes are the two version declarations and
+  removal of automatic setup-file creation. Qualification documentation added
+  afterward does not change the release binary.
 
-## Exact update results
+## Automated validation
 
-The signed USB update verified the full image and rebooted. Independent USB
-readback reported 0.3.8 with no pending boot verification; Wi-Fi, cloud device
-identity, name, and display/LED settings matched the pre-update snapshot.
-A read-only card comparison verified all 73 visible file hashes and an unchanged
-visible file list. The card was safely unmounted. The production Devices page
-reported the spare online on 0.3.8 and acknowledged a cloud LED-off command.
-The retained Bridge pairing was subsequently verified through an authenticated local API request.
+Native production-C ASan/UBSan suites, real ESP-IDF FatFs tests, and all 20 Python
+release-tool tests passed after removing setup-file creation. The unchanged
+installer passed its 11 tests and build. The assembled local preview's factory
+manifest and all four firmware assets matched the final package byte for byte.
+A distinct preview asset path prevented reuse of earlier candidate caches.
+Release-tool test output about publication is mocked; these tests publish nothing.
 
-The LED was restored through the cloud and acknowledged as saved. The operator
-then moved the spare to the Brother, sent a design through the production Ember
-cloud, and confirmed delivery and a responsive Brother preview on the exact
-0.3.8 image. Browser factory installation remains pending.
+## Final candidate hardware results
 
-Before the approved factory-install check, the existing Bridge token authenticated
-`/api/info` on the USB-identified spare running 0.3.8 with normal Wi-Fi connected.
-No new pairing was performed. A fresh read-only backup captured 147 files
-including metadata after the latest production delivery (`Homer Star.pes`); the
-card was safely unmounted. With explicit operator approval, Spare Link was
-removed from its account before the factory installer reset. The local browser
-preview serves the exact verified factory package; installation is pending.
+Hardware: spare LILYGO T-Dongle-S3, verified second 120 MiB FAT32 card, and Brother
+NQ1700E. The regular dongle was not modified.
 
-## Factory check and corrected candidate
+- Chrome installed the final factory package and reported written and verified.
+- After normal reconnect, independent USB readback reported 0.3.8, healthy boot
+  with no pending verification, and cleared Wi-Fi/cloud identity as expected.
+- A read-only card comparison verified all 74 existing visible file hashes and
+  an unchanged file list. `START HERE.html` was not recreated. Card safely unmounted.
+- Fresh Wi-Fi setup succeeded. Account enrollment encountered the known retained
+  identity conflict described below, then succeeded after approved support recovery.
+- The production Devices page reported the spare online on 0.3.8. Cloud LED-off
+  and LED-on commands were acknowledged as saved; the LED was restored to on.
+- The production editor recorded `Leviathan (Clone).pes` saved to Ember Link.
+  The operator confirmed its Brother preview opened and the machine stayed responsive.
 
-The operator reported the first candidate written and verified in Chrome. USB
-readback confirmed a healthy fresh 0.3.8 boot, cleared Wi-Fi and cloud identity,
-and all 74 pre-factory visible files unchanged. The file-list assertion caught
-an additional `START HERE.html`; this is expected for an unprovisioned device.
-Inspection found its setup URL still used `connect.emberdesign.net`, which
-failed a public DNS/HTTP check on 2026-10-06. The operator requested removing shortcut creation entirely. The corrected
-candidate never adds `START HERE.html`; existing post-Wi-Fi cleanup for older
-helpers is retained. Setup remains available directly through Ember or Bridge.
+## Supporting update and development evidence
 
-The first candidate was never pushed, tagged, drafted, or published. Its exact
-image checks above remain historical evidence, not checks of the corrected
-binary. The corrected 0.3.8 candidate is rebuilt into a separate local package;
-no distributed GitHub assets or tags are replaced.
+An earlier unpublished 0.3.8 candidate was installed through the signed USB update
+path. Independent USB readback confirmed healthy boot and retention of Wi-Fi,
+cloud identity, name and display/LED settings. All 73 then-existing visible files
+matched their pre-update hashes. The existing Bridge pairing token authenticated
+local API access without re-pairing. Production cloud settings, design delivery,
+and a responsive Brother preview passed on that candidate.
 
-### Corrected exact-package checks
+Its source was `74b6451baa2b295047e749a30130e695ffd3c5bb` and image SHA-256 was
+`fbb18da6a097e6eab6cdae21600a89ac11985e64ea82970b50add303f16d5297`.
+Factory checking found its generated helper linked to an unavailable setup
+hostname; the operator requested removing helper creation. That candidate was
+superseded and must not be published. The final image above was qualified through
+factory installation; the signed USB update/preservation check was not repeated
+with that final binary. Update machinery is unchanged by the helper removal.
 
-- [x] Record corrected source, application hash, and verified production signature.
-- [x] Automated checks pass after removing setup shortcut creation.
-- [x] Browser installation, fresh healthy boot, retained files, and absence of new shortcut creation pass.
-- [ ] Fresh Wi-Fi setup and self-service account enrollment pass.
-- [ ] Cloud settings and design delivery pass; Brother preview stays responsive.
-- [ ] Verify published assets and Stable feed against the corrected qualified package.
+See [dev.1 qualification](release-qualification-0.3.8-dev.1.md) and
+[dev.2 qualification](release-qualification-0.3.8-dev.2.md) for enrollment recovery,
+interruption tests, local file operations, and card-integrity evidence. Additional
+production tests on dev.2 on 2026-10-06 passed enrollment, account removal, same-
+device re-linking with retained credentials, cloud settings, design delivery and
+Brother preview, automatic cloud reconnection, and queued offline settings after
+restart. Old and newly delivered designs remained readable. Current frontend and
+backend require online status to create new design transfers; offline design-job
+creation is not supported and was not tested.
 
-### Corrected candidate identity
+## Factory-reset recovery issue and explicit deferral
 
-- Source: `f7ffaeb7d7a69436b0adc9359218d1a9a1fe693b` on local `main`.
-- Application: 1,314,816 bytes; SHA-256
-  `57dda28cfc0dec1052f4a8fd0071117e87f663b4a5ce3936a6ceae5d6b223466`.
-- Same production verification key ID as the first candidate; clean ESP-IDF
-  6.0.2 build and signature verification passed.
-- Native sanitizer suites, real FatFs tests, and all 20 Python release-tool
-  checks passed again after the code change. The installer source is unchanged;
-  its previously passing 11 tests/build remain applicable.
-- Only the version declarations and removal of automatic setup-file creation
-  differ in firmware source from dev.2. Legacy cleanup after Wi-Fi setup remains.
-- The previously generated helper on the spare was privately backed up and
-  removed for the no-recreation check; all 74 pre-factory visible files still
-  matched. Card safely unmounted.
-- Local installer preview is assembled from the corrected verified package and
-  uses a distinct candidate asset path to avoid earlier browser caches.
-
-### Corrected factory-install result
-
-Chrome requested the corrected candidate's distinct manifest and all four binary
-assets from the local preview; all served files matched the verified package.
-The operator reported 0.3.8 written and verified. After normal reconnect,
-independent USB readback confirmed 0.3.8, no pending boot verification, and
-fresh Wi-Fi/cloud state as expected. A read-only card check verified all 74
-visible pre-factory files against their SHA-256 hashes, an unchanged visible
-file list, and absence of `START HERE.html`. Card safely unmounted.
-Fresh provisioning and final corrected-image delivery/preview remain pending.
-
-## Factory-reset cloud recovery blocker
-
-Fresh Wi-Fi configuration succeeded, but account linking showed: "This pending
+After account removal and factory erasure, linking showed: "This pending
 connection needs attention. Reconnect with the original account or contact Ember
-support." The signed-in account was the same account used before removal.
-An isolated in-memory reproduction of the current backend confirmed: enroll,
-remove from account, erase device identity, and enroll with a new token returns
-HTTP 409 `enrollment_conflict`. Removal intentionally preserves the old token
-hash and advances the ownership generation; fresh enrollment refuses to replace
-that existing identity. The firmware maps 409 to a blocked pending enrollment.
-Earlier removal/re-linking passed because it retained the original credential.
+support." An isolated backend reproduction confirmed HTTP 409
+`enrollment_conflict`: removal retains the old credential and advances ownership
+generation, while a full flash erase makes the device generate a different token.
+Fresh enrollment deliberately refuses to replace the existing identity. Earlier
+normal re-linking passed because the old device credential was retained.
 
-At diagnosis, no live database record was changed and no credentials were
-extracted. The browser USB session was left connected. Resolving this requires an authorized
-recovery path or an explicit support intervention; do not bypass the conflict
-check or reset identity records indiscriminately. Publication and corrected-image
-cloud delivery qualification remain on hold. This is unrelated to removing
-setup-shortcut creation. The corrected factory boot and 74-file checks passed.
+On 2026-10-06 the operator approved a one-time support reset for this spare and
+explicitly deferred self-service factory-reset recovery. The correct AWS account
+and table were verified. The single identity record was privately backed up and
+confirmed unowned, not administratively revoked, and without active work.
+Deletion required the exact backed-up data and version plus no owner index
+attribute. Returned data matched the backup; a consistent read verified absence.
+Only that identity record was deleted. Enrollment/removal audit records, design
+objects, infrastructure, and other devices were unchanged. After restart the
+spare enrolled successfully and completed the final cloud checks above.
 
-## Approved support recovery and deferred self-service fix
+This does not fix the product limitation or establish a general automatic-reset
+policy. Previously enrolled devices that lose credentials through full flashing
+still require authorized support recovery. Prefer signed updates that preserve
+configuration. [Cloud enrollment](cloud-enrollment.md#known-limitation-enrollment-after-a-full-flash-erase)
+records the deferred work and required ownership/replay safeguards. Release notes
+include this limitation. Private backups and device records remain outside Git.
 
-On 2026-10-06 the operator explicitly approved a one-time backend identity reset
-for the spare and deferred implementing self-service factory-reset recovery.
-The correct AWS account and Link table were verified. The single released device
-record was privately backed up: owner absent, not revoked, and no active transfer,
-update, or settings operation. A conditional deletion matched both its exact data
-and version and required the owner index attribute to remain absent. The returned
-item matched the backup; a subsequent consistent read verified absence.
-Enrollment/removal audit records, design objects, infrastructure, and other
-devices were not changed. Private evidence remains outside the repository.
+## Other limits and deferred checks
 
-This support action unblocks fresh enrollment of the spare; it does not fix the
-product's reset-recovery gap. [Cloud enrollment](cloud-enrollment.md#known-limitation-enrollment-after-a-full-flash-erase)
-records the limitation and future authorization/replay requirements. Final
-re-enrollment and cloud delivery on the corrected candidate remain pending.
-The longer reliability test also remains explicitly deferred, not passed.
+The operator explicitly deferred the longer powered-on reliability test on
+2026-10-06. It is not passed. Multi-day reliability, deliberate power cuts during
+FAT mutations, stitch-out, and other embroidery-machine models remain untested.
+The first card's corruption remains unexplained; successful second-card checks
+neither identify the cause nor prove universal card/machine compatibility. See
+[local filesystem operations](local-file-operations.md). These limits are disclosed
+in the release notes. No claim of power-loss-atomic FAT operations is made.
+
+## Publication verification (pending approval and publication)
+
+- [ ] Push reviewed source and qualification documentation to GitHub.
+- [ ] Source CI passes; draft targets the final package's source commit.
+- [ ] Draft assets exactly match the verified local package.
+- [ ] Publish v0.3.8 as latest Stable and verify the immutable tag/source binding.
+- [ ] Anonymous Stable catalog and image match the qualified package.
+- [ ] Browser installer deployment succeeds and serves the final factory assets.
+
+Production AWS firmware-catalog synchronization is a separate cloud deployment;
+GitHub publication does not by itself update that catalog.
