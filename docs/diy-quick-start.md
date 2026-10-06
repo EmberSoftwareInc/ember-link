@@ -45,8 +45,7 @@ Use a desktop browser with Web Serial, such as Chrome or Edge.
 
 1. Safely eject any mounted dongle drive and close other USB setup sessions.
 2. Hold **the small button** while plugging the dongle into your computer, then release it.
-3. Keep **Stable** selected and approve erasing the board’s internal
-   firmware/settings, then click **Connect and install**.
+3. Keep **Stable** selected, then click **Connect and install**.
 4. Select the dongle in the browser device picker and leave it connected until
    the page reports the firmware was written and verified.
 5. Unplug and reconnect normally. Press the small button twice within one second,
@@ -57,10 +56,15 @@ Use a desktop browser with Web Serial, such as Chrome or Edge.
    reconnect normally. Choose [Ember web setup](https://emberdesign.net/link) for an
    eligible cloud device, or continue with Bridge below for local use.
 
-This is for new DIY boards or deliberate recovery. It erases internal flash,
-including Wi-Fi, local pairing, and cloud credentials, but not the microSD card.
-It does not register the device with Ember's cloud. Existing Link owners should
-use normal firmware updates rather than reinstalling.
+The installer initializes blank boards and preserves settings/cloud identity on
+recognized compatible Link installations. It never erases the microSD card during
+firmware installation. On a new board with recognized preloaded firmware, it asks
+you to confirm that the board has never been set up as Link and approve erasing
+its internal firmware/settings. The microSD stays unchanged. Other unrecognized
+firmware, unsupported Link versions or unfinished work stop without writing;
+follow the support guidance instead of erasing an existing Link.
+Installation does not register the device with Ember's cloud or transfer ownership.
+Existing Link owners should use normal signed firmware updates for routine updates.
 
 If no qualified package is offered, or you want to modify the firmware, follow
 the detailed guide's [tool installation](diy-build-guide.md#3-install-the-development-tools),

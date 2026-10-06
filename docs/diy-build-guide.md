@@ -226,6 +226,16 @@ it in a private user folder. `artifacts/` is excluded from Git.
 
 ### First installation on your DIY board
 
+The browser installer preserves settings on recognized compatible Link installations.
+For a new board with supported preloaded firmware, it offers a separate first-install
+confirmation before erasing internal firmware/settings. Both confirmations are
+required, and the microSD is unaffected. It never offers this as a fallback for
+an existing Link that fails preservation checks.
+The manual erase procedure below is for deliberate developer/support preparation,
+including boards with unrelated firmware that the browser refuses. It is not a
+browser reinstall step. Never erase a cloud-enrolled Link to solve a pairing problem:
+full erasure can require authorized support recovery of the retained backend identity.
+
 After saving the backup, erase the old board firmware/settings for a clean
 first installation. **This erases internal flash, including any device identity
 and Wi-Fi settings. Do not use this step for routine updates or an enrolled

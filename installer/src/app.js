@@ -1,6 +1,5 @@
 import { ESPLoader, Transport } from 'esptool-js';
-import { md5 } from '@noble/hashes/legacy';
-import { bytesToHex } from '@noble/hashes/utils';
+import { installPreserving } from './install-plan.mjs';
 import { validateManifest,checkHardware,checkedDownload } from './policy.mjs';
 import './button-help.js';
 import { SetupSerial,validateCardStatus } from './setup-serial.mjs';
@@ -8,14 +7,35 @@ const $=id=>document.getElementById(id);
 const supported=!!navigator.serial && window.isSecureContext;
 let current=null,busy=false,generation=0;
 let cardClient=null,cardState=null,cardBusy=false,cardLabels=false;
+let firstInstallResolve=null;
+function finishFirstInstall(approved){
+  const resolve=firstInstallResolve;firstInstallResolve=null;
+  $('first-install').hidden=true;
+  $('first-install-new').checked=false;$('first-install-erase').checked=false;
+  $('first-install-confirm').disabled=true;
+  resolve?.(approved);
+}
+function confirmFirstInstall({serial}){
+  $('first-install-device').textContent=`Connected board: ${serial}`;
+  $('first-install-new').checked=false;$('first-install-erase').checked=false;
+  $('first-install-confirm').disabled=true;$('first-install').hidden=false;
+  $('first-install-new').focus();
+  return new Promise(resolve=>{firstInstallResolve=resolve;});
+}
+for(const id of ['first-install-new','first-install-erase'])$(id).addEventListener('change',()=>{
+  $('first-install-confirm').disabled=!firstInstallResolve||!$('first-install-new').checked||!$('first-install-erase').checked;
+});
+$('first-install-confirm').addEventListener('click',()=>{if(!$('first-install-confirm').disabled)finishFirstInstall(true);});
+$('first-install-cancel').addEventListener('click',()=>finishFirstInstall(false));
+navigator.serial?.addEventListener('disconnect',()=>finishFirstInstall(false));
 function status(message,error=false){$('status').textContent=message;$('status').classList.toggle('error',error);}
 function ready(){
-  $('install').disabled=!supported||busy||cardBusy||!!cardClient||!current||!$('erase-consent').checked||($('channel').value==='dev'&&!$('dev-consent').checked);
-  for(const id of ['channel','erase-consent','dev-consent'])$(id).disabled=busy||cardBusy;
+  $('install').disabled=!supported||busy||cardBusy||!!cardClient||!current||($('channel').value==='dev'&&!$('dev-consent').checked);
+  for(const id of ['channel','dev-consent'])$(id).disabled=busy||cardBusy;
   renderCardControls();
 }
 async function load(){
-  const gen=++generation,channel=$('channel').value;current=null;$('dev-consent').checked=false;$('erase-consent').checked=false;$('dev-label').hidden=channel!=='dev';ready();
+  const gen=++generation,channel=$('channel').value;current=null;$('dev-consent').checked=false;$('dev-label').hidden=channel!=='dev';ready();
   $('release').textContent='Checking the current release…';
   try{
     const res=await fetch('./catalog.json',{cache:'no-store'});if(!res.ok)throw Error('Release information is unavailable. Please try again later.');
@@ -33,15 +53,16 @@ async function load(){
   finally{if(gen===generation)ready();}
 }
 $('channel').addEventListener('change',load);
-for(const id of ['erase-consent','dev-consent'])$(id).addEventListener('change',ready);
+for(const id of ['dev-consent'])$(id).addEventListener('change',ready);
 window.addEventListener('beforeunload',e=>{if(busy||cardBusy){e.preventDefault();e.returnValue='';}});
 $('support').textContent=supported?'':'Use a desktop browser with Web Serial, such as Chrome or Edge. USB installation is not available in this browser.';
 $('install').addEventListener('click',async()=>{
   if($('install').disabled)return;
-  const selected=current;let transport=null,writing=false;
+  const selected=current;let transport=null,writing=false,stage='Choosing the USB device';
   busy=true;ready();$('progress').hidden=false;$('progress').value=0;status('Choose the dongle in the browser’s USB device picker.');
   try{
     const port=await navigator.serial.requestPort({filters:[{usbVendorId:0x303a}]});
+    stage='Downloading firmware';
     status('Downloading and checking all installation files. Nothing has been erased.');
     const files=[];
     for(const part of selected.manifest.parts){
@@ -50,24 +71,29 @@ $('install').addEventListener('click',async()=>{
     transport=new Transport(port,false);
     const loader=new ESPLoader({transport,baudrate:115200,debugLogging:false,terminal:{clean(){},write(){},writeLine(){}}});
     status('Checking the chip and flash capacity. Keep Link connected.');
+    stage='Connecting to the download-mode device';
     await loader.main('no_reset');
+    stage='Checking hardware';
     checkHardware(loader.chip.CHIP_NAME,await loader.detectFlashSize());
     const security=await loader.getSecurityInfo();
     if(security.parsedFlags.SECURE_BOOT_EN||security.parsedFlags.SECURE_DOWNLOAD_ENABLE||security.flashCryptCnt!==0||!loader.IS_STUB)throw Error('This board has unsupported security settings or download mode. Nothing was erased.');
-    writing=true;status('Installing firmware. Do not unplug Link or close this page.');
+    stage='Inspecting the existing installation';
+    status('Checking the existing installation and saved settings. Nothing has been written.');
     const total=files.reduce((sum,f)=>sum+f.data.length,0);
-    await loader.writeFlash({fileArray:files,flashMode:'keep',flashFreq:'keep',flashSize:'keep',eraseAll:true,compress:true,
-      calculateMD5Hash:data=>bytesToHex(md5(data)),reportProgress:(i,written)=>{$('progress').value=Math.min(99,100*(files.slice(0,i).reduce((s,f)=>s+f.data.length,0)+written)/total);}});
-    // No reset before verification. Each address is checked against the original
-    // unmodified file bytes; keep flash parameters preserves the signed image.
-    status('Verifying written firmware…');
-    for(const f of files){if((await loader.flashMd5sum(f.address,f.data.length)).toLowerCase()!==bytesToHex(md5(f.data)))throw Error('Written firmware verification failed.');}
-    $('progress').value=100;status(`Ember Link ${selected.manifest.version} was written and verified. Unplug, reconnect normally, then follow step 3 to check the card. A healthy boot still needs to be checked on the device.`);
+    const plan=await installPreserving(loader,files,selected.manifest,{
+      confirmFirstInstall,
+      onPlan:plan=>status(plan.mode==='first-install'?'Preloaded firmware detected. Review the first-install confirmation below. Nothing has been written.':plan.mode==='blank'?'Blank board detected. Installing Ember Link; you will configure it afterward.':'Compatible Ember Link detected. Reinstalling firmware while preserving saved settings and cloud identity.'),
+      onWrite:()=>{writing=true;stage='Writing and verifying firmware';status('Installing and verifying firmware. Keep the board connected and do not close this page.');},
+      reportProgress:(i,written)=>{$('progress').value=Math.min(99,100*(files.slice(0,i).reduce((s,f)=>s+f.data.length,0)+written)/total);},
+    });
+    $('progress').value=100;status(`Ember Link ${selected.manifest.version} was written and verified.${plan.mode==='preserve'?' Saved settings were preserved and verified.':''} Unplug, reconnect normally, then follow step 3 to check the card. A healthy boot still needs to be checked on the device.`);
   }catch(e){
-    status(e.name==='NotFoundError'?'Device selection cancelled. Nothing was erased.':`${e.message}${writing?' Reconnect while holding the small button and repeat installation to recover. Do not use the device until installation succeeds.':''}`,e.name!=='NotFoundError');
+    const cancelled=['NotFoundError','FirstInstallCancelled'].includes(e.name);
+    status(e.name==='NotFoundError'?'Device selection cancelled. Nothing was erased.':e.name==='FirstInstallCancelled'?e.message:`${stage}: ${e.message}${writing?' Keep the board in download mode and retry. If its installation can no longer be recognized, contact support; do not erase settings. Do not use the device until installation succeeds.':/Nothing was (written|erased)/.test(e.message)?'':' Nothing was written.'}`,!cancelled);
   }finally{
+    finishFirstInstall(false);
     if(transport){try{await transport.disconnect();}catch{status('The USB session could not close. Unplug Link, then reconnect normally if verification succeeded, or hold the small button to retry an incomplete installation.',true);}}
-    busy=false;$('erase-consent').checked=false;ready();
+    busy=false;ready();
   }
 });
 // Card controls use a separate USB setup connection after the firmware boots.
