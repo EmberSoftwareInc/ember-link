@@ -10,8 +10,17 @@
 <label for="channel">Firmware channel</label><select id="channel"><option value="stable">Stable · recommended</option><option value="dev">Development · experimental</option></select>
 <label id="dev-label" class="check" hidden><input id="dev-consent" type="checkbox">I understand Development firmware is experimental.</label>
 <p id="release" role="status">Checking the current release…</p>
-<label class="check"><input id="erase-consent" type="checkbox">I approve erasing this board’s internal flash, including firmware, Wi-Fi settings, and cloud credentials. I have saved anything I need. The microSD card is not erased.</label>
+<p>Compatible Ember Link installations keep their saved settings and cloud connection. Blank boards are set up after installation. Recognized preloaded firmware needs your approval before first installation. Other unrecognized installations stop without writing.</p>
 <button id="install" disabled>Connect and install</button><progress id="progress" max="100" value="0" hidden></progress><p id="status" role="status" aria-live="polite"></p>
+<div id="first-install" class="first-install" role="region" aria-labelledby="first-install-title" hidden>
+<h3 id="first-install-title">Set up this new board</h3>
+<p id="first-install-device"></p>
+<p>Recognized preloaded firmware was found. Installing Ember Link will erase this board’s internal firmware and settings. Its microSD files will stay unchanged.</p>
+<label class="check"><input id="first-install-new" type="checkbox"><span>This is a new DIY board that has never been set up as Ember Link or connected to an Ember account.</span></label>
+<label class="check"><input id="first-install-erase" type="checkbox"><span>I approve erasing its internal firmware and settings to install Ember Link.</span></label>
+<p class="small">Already used this board with Ember Link? Cancel and contact support to protect its cloud connection.</p>
+<button id="first-install-confirm" disabled>Erase internal flash and install</button><button id="first-install-cancel" class="secondary">Cancel</button>
+</div>
 </section>
 <section class="card"><div class="step">03 / CHECK YOUR CARD</div><h2>Prepare your microSD</h2>
 <p>After installation, unplug and reconnect normally. Wait for startup, then press and release <button type="button" class="button-help" data-button-help aria-controls="button-photo" aria-expanded="false">the small button</button> <strong>twice within one second</strong>.</p>

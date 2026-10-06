@@ -10,25 +10,102 @@ devices. After installation it links to Ember web setup or Bridge's
 
 Use a desktop browser with Web Serial, such as Chrome or Edge, on HTTPS (or
 localhost for testing). The user identifies the original LILYGO T-Dongle-S3,
-inserts a microSD card, holds BOOT while connecting USB, and explicitly
-approves erasing internal flash. The installer detects ESP32-S3 and 16 MB flash;
+inserts a microSD card, holds BOOT while connecting USB, and starts installation. The installer detects ESP32-S3 and 16 MB flash;
 it cannot identify the board wiring, so the parts list names the supported
 LILYGO T-Dongle-S3. The screen version is recommended and physically tested;
 screenless operation has not yet been physically qualified. Hardware security configurations outside the development-board setup
-are refused before erasure. No eFuses are changed.
+are refused before writing. No eFuses are changed.
 
 All four files are downloaded with size and SHA-256 checks before any erasure.
 The page writes the existing file bytes without patching signed image headers,
 and verifies device-side MD5 against each original file after writing. The page
 reports **written and verified**, not a confirmed healthy boot. The user must
 reconnect normally and check the device through Ember or Bridge. An interrupted
-install requires returning to BOOT download mode and repeating installation.
+install requires returning to BOOT download mode; the preservation checks below
+determine whether a retry is safe.
 
-This is a **first-install/recovery** flow. It erases saved Wi-Fi, local pairing,
-and cloud identity. The firmware-install step does not erase the microSD card. The separate card
-preparation step erases it only after explicit confirmation. Existing Link owners should
-use their normal signed update flow to preserve device settings. Reinstallation
-does not transfer server-side account ownership.
+This is a **first-install/reinstallation** flow. On a recognized compatible Link,
+it preserves the settings partition (cloud identity, Wi-Fi, Bridge pairing and
+preferences), PHY storage, the other application slot, and reserved credential
+storage. Full-chip erasure is offered only for the narrowly recognized preloaded
+firmware described below, after explicit first-install approval. It is never a
+fallback for a failed Link preservation check. The firmware-install step does not
+erase the microSD card; separate card preparation still requires deletion consent.
+Prefer the normal signed updater for routine updates. Reinstalling does not unlink
+an account or transfer ownership; the current owner must remove the device before
+another account claims it. Already-lost credentials still require support recovery.
+
+### Preservation checks
+
+Before any flash write the page:
+
+- Confirms the exact `link-v1` partition entries, labels, sizes, offsets, flags,
+  partition-table MD5 and padding, against the validated release package.
+- Classifies a board as blank only when the entire 16 MiB flash matches erased
+  bytes. A missing or unreadable table alone is insufficient. Recognized preloaded
+  firmware uses the separate, explicitly approved first-install path below; other
+  unrelated firmware is refused.
+- For existing Link installations, checks both application descriptors against
+  an explicit settings-compatibility list. The initial list permits 0.3.6, 0.3.7,
+  0.3.8-dev.1, 0.3.8-dev.2 and 0.3.8 to install 0.3.8; Development 0.3.8-dev.2
+  excludes installed 0.3.8. Unknown versions and downgrades are refused. A future
+  release needs an explicit compatibility review before preserving settings.
+  Descriptor recognition is a compatibility check, not hardware or image attestation.
+- Conservatively inspects ESP-IDF NVS v2 integrity and pending cloud receipts.
+  Unacknowledged firmware/design/settings work, incomplete NVS maintenance, or
+  an unfinished OTA boot causes a stop before writing. Reconnect normally and
+  finish/reconcile the operation first. Pending enrollment is retained with its
+  original candidate credential on these compatible firmware versions.
+- Checks sector-rounded write ranges cannot touch preserved regions. The package
+  still replaces bootloader, partition table, initial OTA selection and `ota_0`.
+- Compares device-side checksums of all preserved regions before and after writing,
+  in addition to verifying every firmware file. It reports preservation only if
+  both checks pass. This is not an external backup or a guarantee against failing flash.
+
+Settings are read into browser memory for the local preflight, never uploaded,
+logged, downloaded, or placed in browser storage. NVS buffers are cleared after
+inspection. No backend or device credential changes are requested by the page.
+The inspected format follows ESP-IDF 6.0.2's NVS page/item definitions. Tests include
+an independently generated synthetic multi-page fixture from Espressif's NVS tool.
+
+An interrupted installation may be retried if the board remains recognizable;
+settings are never erased as a fallback. If partition/application headers were
+left unrecognizable, stop and contact support. A partially initialized board is
+accepted only with the exact layout and blank settings/application/reserved regions.
+This deliberately favors preserving identity over automatic recovery of every
+possible power-cut state. Erasure outside the recognized new-board path remains
+a support/developer procedure in
+[the detailed build guide](diy-build-guide.md#first-installation-on-your-diy-board),
+with private backup and cloud-identity consequences considered first.
+
+### First installation on a preloaded board
+
+A new board may contain demonstration firmware instead of blank flash. The installer
+recognizes the specific Arduino layout inspected during qualification: six exact
+entries (including offsets, sizes, flags and labels), valid table MD5 and erased
+padding, and ESP32-S3 application descriptors identifying `arduino-lib-builder`
+version `45c1b25`. The second application must be blank or match that descriptor.
+It also refuses recognizable Link namespace/identity markers in the settings,
+reserved credential area and former Link application headers. Flash read failures
+stop the process. This is conservative compatibility recognition, **not** image
+attestation or proof that the board has never belonged to someone else. Other
+factory versions/layouts require a separate review; the option is not universal.
+
+Only this result opens **Set up this new board**, with its hardware serial shown.
+The operator must check both that it has never been set up as Link or connected to
+an Ember account, and that erasing internal firmware/settings is approved. The
+button explicitly says **Erase internal flash and install**. Cancel or USB
+disconnection dismisses the prompt without writing; every attempt starts unchecked.
+There is no saved erase preference and no way to use this panel to override Link
+version, receipt, NVS or boot-state failures.
+
+After approval, the installer rechecks the MAC and installation policy on the same
+connection, erases internal flash, and verifies all 16 MiB are erased before writing
+the checked release files. A failed erase does not automatically retry. A power cut
+may need support if the resulting layout cannot be recognized; no destructive
+fallback is attempted. The microSD is unaffected and still has its own separate
+formatting approval. Success reports written and verified without claiming that
+old settings were preserved. Finish normal boot, card checking and Wi-Fi setup.
 
 Stable is the default. Development needs separate experimental consent and uses
 only the explicit recommendation in `release-channels/dev.json`. Empty feeds or
@@ -185,5 +262,5 @@ python -m http.server 8794 --bind 127.0.0.1 --directory installer/dist
 Local preview labels the package as a hardware test preview. Pages never uses
 `--preview-package`. For a production-equivalent local build, authenticate `gh`
 and omit that option. Test cancellation, missing packages, changed channels,
-download failures, wrong hardware, and explicit erase consent before testing a
+download failures, wrong hardware, unsupported layouts, and pending work before testing a
 spare board. Do not use a configured customer dongle as a disposable test unit.
