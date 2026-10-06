@@ -206,14 +206,12 @@ static void sync_start_here(bool provisioned)
         ESP_LOGW(TAG, "could not write %s", START_HERE_NAME);
         return;
     }
-    fprintf(f,
-            "<!doctype html><meta charset=\"utf-8\">"
-            "<meta http-equiv=\"refresh\" content=\"0;url=https://connect.emberdesign.net?serial=%s\">"
-            "<title>Set up Ember Link</title>"
-            "<p>Taking you to the Ember Link setup&hellip; "
-            "<a href=\"https://connect.emberdesign.net?serial=%s\">Click here</a> "
-            "if nothing happens.</p>",
-            s_serial, s_serial);
+    fputs("<!doctype html><meta charset=\"utf-8\">"
+          "<meta http-equiv=\"refresh\" content=\"0;url=https://emberdesign.net/link/setup\">"
+          "<title>Set up Ember Link</title>"
+          "<p>Taking you to the Ember Link setup&hellip; "
+          "<a href=\"https://emberdesign.net/link/setup\">Click here</a> "
+          "if nothing happens.</p>", f);
     fclose(f);
     ESP_LOGI(TAG, "wrote %s (unprovisioned dongle)", START_HERE_NAME);
 }
