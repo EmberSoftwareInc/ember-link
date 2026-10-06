@@ -241,6 +241,35 @@ prevents that service selection from redirecting an existing candidate token.
 NVS remains unencrypted, as in previous firmware; this feature does not claim
 protection against physical flash extraction or cloned hardware identities.
 
+## Known limitation: enrollment after a full flash erase
+
+Self-service recovery after a full browser/factory flash erase is deferred as of
+2026-10-06. Account removal intentionally preserves the device credential in the
+backend, and normal USB re-linking works while the device retains that credential.
+A full flash erase generates a new credential; the existing backend identity then
+rejects fresh enrollment with `409 enrollment_conflict`, including for the same
+account after removal. The web page may report that the pending connection needs
+attention. Repeating the installation does not fix the retained backend identity.
+
+This differs from the firmware's local-settings reset, which retains cloud
+identity. Prefer signed firmware updates for an already configured device.
+
+Until account-authorized recovery is implemented, previously enrolled devices
+that lose their identity require support intervention. During 0.3.8 qualification,
+the operator explicitly approved a one-time reset of the known spare's released
+identity record. It was privately backed up and checked for no owner, no active
+work, and no administrative revocation. Deletion was conditional on the exact
+backed-up data and version, and absence was verified with a consistent read.
+Only that identity item was removed; enrollment/removal history and other devices
+were preserved. This was an exceptional support action, not an automatic recovery
+rule or a general instruction to delete production identity records.
+
+Future recovery must authenticate the authorized account, explicitly reconcile
+ownership and in-flight work, invalidate old credentials and stale requests, and
+handle replay/races safely. Do not relax enrollment conflict checks or automatically
+delete records to work around this limitation. The deferral is a known release
+limitation; one-time support recovery is not proof of self-service recovery.
+
 ## Validation and rollout
 
 `python3 tests/run_native.py` exercises the production enrollment C code with

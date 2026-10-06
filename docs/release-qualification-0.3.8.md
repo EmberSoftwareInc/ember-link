@@ -1,6 +1,6 @@
 # Ember Link 0.3.8 stable qualification
 
-Status: candidate preparation in progress on 2026-10-06; not published.
+Status: corrected candidate built; one-time spare recovery completed; final cloud re-enrollment and delivery checks pending on 2026-10-06.
 
 ## Scope
 
@@ -115,9 +115,75 @@ no distributed GitHub assets or tags are replaced.
 
 ### Corrected exact-package checks
 
-- [ ] Record corrected source, application hash, and verified production signature.
-- [ ] Automated checks pass after removing setup shortcut creation.
-- [ ] Browser installation, fresh healthy boot, retained files, and absence of new shortcut creation pass.
+- [x] Record corrected source, application hash, and verified production signature.
+- [x] Automated checks pass after removing setup shortcut creation.
+- [x] Browser installation, fresh healthy boot, retained files, and absence of new shortcut creation pass.
 - [ ] Fresh Wi-Fi setup and self-service account enrollment pass.
 - [ ] Cloud settings and design delivery pass; Brother preview stays responsive.
 - [ ] Verify published assets and Stable feed against the corrected qualified package.
+
+### Corrected candidate identity
+
+- Source: `f7ffaeb7d7a69436b0adc9359218d1a9a1fe693b` on local `main`.
+- Application: 1,314,816 bytes; SHA-256
+  `57dda28cfc0dec1052f4a8fd0071117e87f663b4a5ce3936a6ceae5d6b223466`.
+- Same production verification key ID as the first candidate; clean ESP-IDF
+  6.0.2 build and signature verification passed.
+- Native sanitizer suites, real FatFs tests, and all 20 Python release-tool
+  checks passed again after the code change. The installer source is unchanged;
+  its previously passing 11 tests/build remain applicable.
+- Only the version declarations and removal of automatic setup-file creation
+  differ in firmware source from dev.2. Legacy cleanup after Wi-Fi setup remains.
+- The previously generated helper on the spare was privately backed up and
+  removed for the no-recreation check; all 74 pre-factory visible files still
+  matched. Card safely unmounted.
+- Local installer preview is assembled from the corrected verified package and
+  uses a distinct candidate asset path to avoid earlier browser caches.
+
+### Corrected factory-install result
+
+Chrome requested the corrected candidate's distinct manifest and all four binary
+assets from the local preview; all served files matched the verified package.
+The operator reported 0.3.8 written and verified. After normal reconnect,
+independent USB readback confirmed 0.3.8, no pending boot verification, and
+fresh Wi-Fi/cloud state as expected. A read-only card check verified all 74
+visible pre-factory files against their SHA-256 hashes, an unchanged visible
+file list, and absence of `START HERE.html`. Card safely unmounted.
+Fresh provisioning and final corrected-image delivery/preview remain pending.
+
+## Factory-reset cloud recovery blocker
+
+Fresh Wi-Fi configuration succeeded, but account linking showed: "This pending
+connection needs attention. Reconnect with the original account or contact Ember
+support." The signed-in account was the same account used before removal.
+An isolated in-memory reproduction of the current backend confirmed: enroll,
+remove from account, erase device identity, and enroll with a new token returns
+HTTP 409 `enrollment_conflict`. Removal intentionally preserves the old token
+hash and advances the ownership generation; fresh enrollment refuses to replace
+that existing identity. The firmware maps 409 to a blocked pending enrollment.
+Earlier removal/re-linking passed because it retained the original credential.
+
+At diagnosis, no live database record was changed and no credentials were
+extracted. The browser USB session was left connected. Resolving this requires an authorized
+recovery path or an explicit support intervention; do not bypass the conflict
+check or reset identity records indiscriminately. Publication and corrected-image
+cloud delivery qualification remain on hold. This is unrelated to removing
+setup-shortcut creation. The corrected factory boot and 74-file checks passed.
+
+## Approved support recovery and deferred self-service fix
+
+On 2026-10-06 the operator explicitly approved a one-time backend identity reset
+for the spare and deferred implementing self-service factory-reset recovery.
+The correct AWS account and Link table were verified. The single released device
+record was privately backed up: owner absent, not revoked, and no active transfer,
+update, or settings operation. A conditional deletion matched both its exact data
+and version and required the owner index attribute to remain absent. The returned
+item matched the backup; a subsequent consistent read verified absence.
+Enrollment/removal audit records, design objects, infrastructure, and other
+devices were not changed. Private evidence remains outside the repository.
+
+This support action unblocks fresh enrollment of the spare; it does not fix the
+product's reset-recovery gap. [Cloud enrollment](cloud-enrollment.md#known-limitation-enrollment-after-a-full-flash-erase)
+records the limitation and future authorization/replay requirements. Final
+re-enrollment and cloud delivery on the corrected candidate remain pending.
+The longer reliability test also remains explicitly deferred, not passed.
