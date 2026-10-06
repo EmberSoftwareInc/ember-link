@@ -34,11 +34,8 @@ typedef struct {
 // Missing/unreadable cards leave storage unavailable but do not block setup.
 // In maintenance mode only CDC is exposed, with no network/storage clients.
 //
-// `provisioned` (i.e. WiFi credentials exist) decides whether the card
-// carries the "START HERE" pointer to the Ember Link setup page: written to
-// a factory-fresh card, deleted on the first boot after setup — so the
-// embroidery machine, which only ever meets a provisioned dongle, never
-// sees it.
+// Once provisioned, remove the legacy "START HERE.html" helper created by
+// older firmware. New firmware never creates this file.
 esp_err_t storage_init(bool provisioned, bool setup_mode, void (*waiting_for_card_cb)(void));
 
 // Claim the card for firmware file access. Blocks other claimants.

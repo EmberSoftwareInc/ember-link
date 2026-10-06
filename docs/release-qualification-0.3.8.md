@@ -6,7 +6,7 @@ Status: candidate preparation in progress on 2026-10-06; not published.
 
 Promotes self-service cloud enrollment, cloud removal/re-enrollment recovery,
 and authenticated local filesystem operations for Bridge from 0.3.8-dev.2.
-Includes a first-run setup shortcut correction found during factory qualification.
+Removes automatic first-run setup shortcut creation following factory qualification.
 The stable version has a new binary and requires its own exact-package checks.
 
 ## Supporting development-image evidence
@@ -104,8 +104,9 @@ readback confirmed a healthy fresh 0.3.8 boot, cleared Wi-Fi and cloud identity,
 and all 74 pre-factory visible files unchanged. The file-list assertion caught
 an additional `START HERE.html`; this is expected for an unprovisioned device.
 Inspection found its setup URL still used `connect.emberdesign.net`, which
-failed a public DNS/HTTP check on 2026-10-06. The corrected candidate links to
-`https://emberdesign.net/link/setup` without a hardware serial in the URL.
+failed a public DNS/HTTP check on 2026-10-06. The operator requested removing shortcut creation entirely. The corrected
+candidate never adds `START HERE.html`; existing post-Wi-Fi cleanup for older
+helpers is retained. Setup remains available directly through Ember or Bridge.
 
 The first candidate was never pushed, tagged, drafted, or published. Its exact
 image checks above remain historical evidence, not checks of the corrected
@@ -115,8 +116,8 @@ no distributed GitHub assets or tags are replaced.
 ### Corrected exact-package checks
 
 - [ ] Record corrected source, application hash, and verified production signature.
-- [ ] Automated checks pass after the setup shortcut correction.
-- [ ] Browser installation, fresh healthy boot, retained files, and corrected shortcut pass.
+- [ ] Automated checks pass after removing setup shortcut creation.
+- [ ] Browser installation, fresh healthy boot, retained files, and absence of new shortcut creation pass.
 - [ ] Fresh Wi-Fi setup and self-service account enrollment pass.
 - [ ] Cloud settings and design delivery pass; Brother preview stays responsive.
 - [ ] Verify published assets and Stable feed against the corrected qualified package.

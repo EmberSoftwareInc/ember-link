@@ -220,8 +220,9 @@ cloud sending also works in browsers without Web Serial.
 
 Owners: firmware, web, and product developers.
 
-- Change the existing START HERE file to point to web setup, remove the old
-  Bridge-download filename on migration, and update the provisioning cleanup.
+- Firmware 0.3.8 removes automatic START HERE file creation. Keep the existing
+  post-provisioning cleanup for helpers from older firmware; direct users to
+  the web setup URL or Bridge.
 - Update factory QA assertions and quick-start materials to match the new URL.
   Print the setup URL and QR code; plugging in must not be advertised as a
   guarantee that a website opens automatically.

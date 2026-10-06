@@ -429,11 +429,10 @@ uses `pool.ntp.org` for its clock and verifies TLS certificates. The backend's
 local simulator is useful for software testing, but plain HTTP localhost is not
 a valid physical-dongle cloud URL: `localhost` would refer to the dongle itself.
 
-`START HERE.html`, created on the card before Wi-Fi setup, points to
-`connect.emberdesign.net`.
-It is a convenience link, not enrollment, a firmware installer, or proof that
-the hosted setup service has been deployed. Inserting the dongle does not
-force a computer to open its browser. Follow your backend operator's current URL.
+Open [Ember Link setup](https://emberdesign.net/link/setup) directly to configure
+Wi-Fi, or use Ember Bridge. Firmware 0.3.8 no longer creates a `START HERE.html`
+file on the card. Existing helpers from older firmware are removed on a boot
+after Wi-Fi setup. Plugging in the dongle does not automatically open a browser.
 
 ## 9. Updates, reset, and recovery
 

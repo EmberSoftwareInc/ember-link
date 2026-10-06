@@ -184,36 +184,18 @@ static esp_err_t sd_card_init(sdmmc_card_t **out_card)
     return ESP_OK;
 }
 
-/* --- "START HERE" pointer ------------------------------------------------- */
+/* --- Legacy setup shortcut cleanup -------------------------------------- */
 
 #define START_HERE_NAME "START HERE.html"
 
-/// Written to an unprovisioned card so the out-of-box volume explains
-/// itself; a plain HTML redirect stays current forever, unlike a bundled
-/// installer that would age in a warehouse. Removed once provisioned.
-/// Requires the card to be APP-mounted.
-static void sync_start_here(bool provisioned)
+// Older firmware created this helper before Wi-Fi setup. Keep its existing
+// post-setup cleanup, but never create a new shortcut on the card.
+// Requires the card to be APP-mounted.
+static void cleanup_legacy_start_here(bool provisioned)
 {
-    char path[sizeof(BASE_PATH) + sizeof(START_HERE_NAME) + 1];
-    snprintf(path, sizeof(path), BASE_PATH "/%s", START_HERE_NAME);
-
     if (provisioned) {
-        remove(path); // harmless if absent
-        return;
+        remove(BASE_PATH "/" START_HERE_NAME); // harmless if absent
     }
-    FILE *f = fopen(path, "w");
-    if (f == NULL) {
-        ESP_LOGW(TAG, "could not write %s", START_HERE_NAME);
-        return;
-    }
-    fputs("<!doctype html><meta charset=\"utf-8\">"
-          "<meta http-equiv=\"refresh\" content=\"0;url=https://emberdesign.net/link/setup\">"
-          "<title>Set up Ember Link</title>"
-          "<p>Taking you to the Ember Link setup&hellip; "
-          "<a href=\"https://emberdesign.net/link/setup\">Click here</a> "
-          "if nothing happens.</p>", f);
-    fclose(f);
-    ESP_LOGI(TAG, "wrote %s (unprovisioned dongle)", START_HERE_NAME);
 }
 
 /* --- Cache --------------------------------------------------------------- */
@@ -287,7 +269,7 @@ esp_err_t storage_init(bool provisioned, bool setup_mode, void (*waiting_for_car
         uint64_t total, free_bytes;
         if (esp_vfs_fat_info(BASE_PATH, &total, &free_bytes) == ESP_OK &&
             link_files_recover() == ESP_OK) {
-            sync_start_here(provisioned);
+            cleanup_legacy_start_here(provisioned);
             refresh_cache();
             s_ready = true;
         }
