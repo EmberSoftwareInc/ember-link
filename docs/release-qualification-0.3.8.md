@@ -1,7 +1,7 @@
 # Ember Link 0.3.8 stable qualification
 
-Status: final candidate hardware checks completed on 2026-10-06. GitHub push and
-publication require explicit operator approval; no 0.3.8 release is published yet.
+Status: published as latest Stable on 2026-10-06 after explicit operator approval.
+Public GitHub downloads and the deployed browser installer match the qualified package.
 The limitations below remain open or explicitly deferred.
 
 ## Release scope and package
@@ -114,14 +114,26 @@ neither identify the cause nor prove universal card/machine compatibility. See
 [local filesystem operations](local-file-operations.md). These limits are disclosed
 in the release notes. No claim of power-loss-atomic FAT operations is made.
 
-## Publication verification (pending approval and publication)
+## Publication verification (completed 2026-10-06)
 
-- [ ] Push reviewed source and qualification documentation to GitHub.
-- [ ] Source CI passes; draft targets the final package's source commit.
-- [ ] Draft assets exactly match the verified local package.
-- [ ] Publish v0.3.8 as latest Stable and verify the immutable tag/source binding.
-- [ ] Anonymous Stable catalog and image match the qualified package.
-- [ ] Browser installer deployment succeeds and serves the final factory assets.
+- [x] Push reviewed source and qualification documentation to GitHub.
+- [x] Source CI passes; draft targets the final package's source commit.
+- [x] Draft assets exactly match the verified local package.
+- [x] Publish v0.3.8 as latest Stable and verify the immutable tag/source binding.
+- [x] Anonymous Stable catalog and image match the qualified package.
+- [x] Browser installer deployment succeeds and serves the final factory assets.
+
+[Source CI](https://github.com/EmberSoftwareInc/ember-link/actions/runs/37508376840)
+passed before publication. [Release v0.3.8](https://github.com/EmberSoftwareInc/ember-link/releases/tag/v0.3.8)
+was published at 18:11:36 UTC; its tag resolves to the source commit above.
+All ten anonymously downloaded release assets and the latest Stable catalog
+matched the local qualified package byte for byte.
+
+[Browser installer deployment](https://github.com/EmberSoftwareInc/ember-link/actions/runs/37509402805)
+passed. At 18:15 UTC, the public Pages catalog selected Stable 0.3.8; its factory
+manifest and all four firmware parts matched the qualified package byte for byte.
+Development remains on 0.3.8-dev.2. The [public installer](https://embersoftwareinc.github.io/ember-link/)
+is ready for new DIY boards and deliberate recovery.
 
 Production AWS firmware-catalog synchronization is a separate cloud deployment;
 GitHub publication does not by itself update that catalog.
