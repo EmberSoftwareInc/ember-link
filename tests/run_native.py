@@ -45,6 +45,10 @@ def main():
         run(cc, *flags, tmp / "files.o", MAIN / "link_protocol.c", TEST / "test_files.c",
             *crypto, "-lm", "-o", tmp / "files")
         run(tmp / "files")
+        run(cc, *flags, "-I", CJSON, "-include", TEST / "local_file_faults.h", "-c", MAIN / "local_files.c", "-o", tmp / "local_files.o")
+        run(cc, *flags, "-I", CJSON, tmp / "local_files.o", tmp / "cjson.o",
+            TEST / "test_local_files.c", "-o", tmp / "local_files")
+        run(tmp / "local_files")
         run(cc, *flags, "-I", CJSON, MAIN / "link_protocol.c", MAIN / "cloud_protocol.c",
             MAIN / "display_settings.c", MAIN / "display_cloud.c", tmp / "cjson.o", TEST / "test_cloud.c", *crypto, "-lm", "-o", tmp / "cloud")
         run(tmp / "cloud")

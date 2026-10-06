@@ -64,6 +64,7 @@ void display_state_view(const display_state_t *s, uint32_t now, int rssi, displa
         snprintf(v->line1, sizeof(v->line1), "Wi-Fi %s", rssi == 0 ? "connected" : rssi > -60 ? "strong" : rssi > -75 ? "fair" : "weak");
         display_state_text(v->line2, s->cloud == DISPLAY_CLOUD_OFF ? "Local ready | Cloud off" :
                            s->cloud == DISPLAY_CLOUD_ONLINE ? "Local + cloud ready" :
+                           s->cloud == DISPLAY_CLOUD_UNCLAIMED ? "Not linked to an account" :
                            s->cloud == DISPLAY_CLOUD_ERROR ? "Local ready | Cloud down" : "Cloud connecting...");
     }
     v->dim = !s->active && !v->attention && (uint32_t)(now - s->changed_at) >= 30000;

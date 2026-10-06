@@ -58,7 +58,9 @@ Private storage ← presigned HTTPS download ← Ember Link → microSD → USB 
 - Cloud is unconfigured and disabled on a fresh device. No production URL or
   credential is embedded in source.
 - Physical USB configuration sets a device ID, unique bearer credential, HTTPS
-  API origin, and exact download-host allowlist.
+  API origin, and exact download-host allowlist. Development firmware also adds
+  [self-service enrollment](docs/cloud-enrollment.md) for unconfigured devices;
+  its browser and backend integration is still required.
 - The dongle validates one download job's ownership generation, expiry,
   filename, length, and SHA-256, then streams it through a 4 KiB buffer.
 - TLS verifies certificates/hostnames; redirects are rejected. Device tokens
@@ -72,12 +74,14 @@ Private storage ← presigned HTTPS download ← Ember Link → microSD → USB 
 
 The USB `cloud_claim` command confirms a short-lived account setup proof through
 the authenticated cloud poll. Consumer browser setup and its backend live in
-the separate `ember-app` repo at `/connect`; factory credentials must be
-provisioned before consumer setup. Neither the permanent credential nor WiFi
+the separate `ember-app` repo at `/link/connect`. The deployed flow requires
+pre-provisioned credentials. The new `cloud_enroll` firmware command accepts an
+account ticket and generates a private credential on the dongle for the planned
+self-service flow. Neither the permanent credential nor WiFi
 password is sent to the browser account API.
 
 WiFi provisioning, local HTTP transfers, USB setup, LEDs, and signed updates
-remain inherited foundations. Enrollment automation, live cloud byte progress,
+remain inherited foundations. Enrollment backend/UI integration, live cloud byte progress,
 production cloud firmware distribution, and remote file management remain separate work.
 The reference backend has exercised signed cloud firmware delivery on hardware.
 
@@ -173,6 +177,7 @@ cloud identity and unsettled receipts. It does not unclaim the server-side owner
 ## Handoff
 
 - [Implemented cloud protocol](docs/cloud-protocol.md)
+- [Self-service enrollment and backend contract](docs/cloud-enrollment.md)
 - [Hardware validation checklist](docs/hardware-validation.md)
 - [Proposed backend architecture](docs/cloud-backend-architecture.md)
 - [Broader roadmap](docs/cloud-and-web-setup-implementation-plan.md)
@@ -186,3 +191,10 @@ authoritative for this development iteration. The repository is hosted at
 Ember Link is open source under the [MIT License](LICENSE). Third-party code
 and dependencies retain their own licenses and copyright notices. See
 [third-party notices](THIRD_PARTY_NOTICES.md) for the LilyGO display attribution.
+
+## Local file management
+
+The local protocol supports folder browsing, create, rename, move and
+nonrecursive deletion for Bridge’s Files page. See
+[local file operations](docs/local-file-operations.md) for the contract, safety
+boundaries and qualification status. Cloud file management remains separate.

@@ -2,6 +2,8 @@
 
 Implemented cloud-transfer and USB account-setup contract. The matching backend,
 enrollment and account website are implemented in the separate `ember-app` repo.
+The additive [self-service enrollment extension](cloud-enrollment.md) now has
+firmware support; its backend and browser integration are separate, pending work.
 Cloud file jobs support downloads. Firmware updates and the additive
 [screen/LED settings extension](cloud-settings.md) use separate poll fields.
 Cloud settings require `settingsProtocolVersion:1` (development firmware
@@ -28,7 +30,10 @@ Physical USB `cloud_configure` accepts:
 Configuration disables cloud until `{"cmd":"cloud_enable","enabled":true}`.
 `cloud_status` exposes enabled/configured state, device ID, and last receipt,
 never credentials or signed URLs. USB `info` also includes protocol versions and
-cloud status. An active session may return `{"protocolVersion":1,"busy":true}`.
+cloud status. An active session returns `busy:true,cached:true` with a redacted
+snapshot and `snapshotAgeMs`; idle reads return `busy:false,cached:false` with
+fresh details. Cached responses omit receipts and firmware-update details;
+missing fields do not mean those operations have disappeared.
 
 This is a factory/developer provisioning surface, not account claiming. Normal
 browser setup must not receive the production device credential. There is no
@@ -57,9 +62,11 @@ The JSON setup/account protocol remains version 1. See [USB modes](usb-modes.md)
 ## Consumer setup over USB (setup protocol v1)
 
 Firmware `0.2.0-dev` adds `setupProtocolVersion:1` to USB `info`. Browser setup
-lives in the Ember account website (`ember-app/next_frontend`, `/connect`).
+lives in the Ember account website (`ember-app/next_frontend`, `/link/connect`).
 Wi-Fi uses the existing `scan` and `provision` commands; no Bridge is required.
-Factory enrollment and `cloud_configure` must precede consumer setup.
+This claim flow requires an existing identity (normally factory enrollment plus
+`cloud_configure`). Fresh DIY devices can instead use the new
+[`cloud_enroll` contract](cloud-enrollment.md) once the backend supports it.
 
 After creating an authenticated account setup session, the browser sends:
 
@@ -260,5 +267,9 @@ last API request. `stage` is `idle`, `init`, `connect`, `write`, `headers`, `rea
 open result), `socketErrno`, `transportError`, `tlsError`, and `tlsFlags`. Errors
 are reset before the next attempt; `complete` means a JSON object was received,
 not that an account claim or file transfer completed. No URL, header, credential
-or response body is exposed. During an active session, the existing `busy`
-response still applies. See the [physical test results](hardware-cloud-test-2026-09-28.md).
+or response body is exposed. During an active session, USB reads use a redacted
+cached snapshot rather than blocking on network I/O. This includes general
+cloud state, enrollment/setup state and IDs, configuration flags, and network
+diagnostics, refreshed before each HTTPS phase. `cached:true` and
+`snapshotAgeMs` identify its age; use it for progress, not authorization or proof
+that an operation completed. See the [physical test results](hardware-cloud-test-2026-09-28.md).

@@ -8,6 +8,14 @@ int main(void) {
     display_view_t v;
     display_state_view(&s,0,-50,&v);
     assert(!strcmp(v.title,"Ready") && strstr(v.line2,"Cloud off") && !v.attention);
+    s.cloud=DISPLAY_CLOUD_UNCLAIMED;
+    display_state_view(&s,0,-50,&v);
+    assert(!strcmp(v.title,"Ready") && !strcmp(v.line1,"Wi-Fi strong"));
+    assert(!strcmp(v.line2,"Not linked to an account") && !v.attention && v.percent==-1);
+    display_state_view(&s,30000,-50,&v); assert(v.dim); // Normal idle state, not an alert.
+    s.cloud=DISPLAY_CLOUD_ERROR;
+    display_state_view(&s,0,-50,&v); assert(strstr(v.line2,"Cloud down"));
+    s.cloud=DISPLAY_CLOUD_UNCLAIMED; // Transfers, setup and card errors still take priority below.
     display_state_begin(&s,false,true,"square.pes",100,100);
     s.done=100; display_state_view(&s,101,-50,&v);
     assert(!strcmp(v.title,"Receiving") && v.percent==99 && strstr(v.line2,"Cloud"));
