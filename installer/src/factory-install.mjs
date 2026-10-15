@@ -22,6 +22,21 @@ function factoryApp(app){
   return app[0]===0xe9&&app[12]===9&&app[13]===0&&u32(app,32)===0xabcd5432&&
     text(app.subarray(80,112))==='arduino-lib-builder'&&text(app.subarray(48,80))==='45c1b25';
 }
+function hasAuthNamespace(bytes){
+  // Each inspected region is page-aligned. NVS has a 64-byte page header /
+  // bitmap followed by 32-byte entries. Namespace definitions are U8 entries
+  // in namespace zero; compare their whole key, not a suffix such as the
+  // standard Wi-Fi key "sta.minauth".
+  // Inspect all slots regardless of bitmap state, page state or CRC: deleted
+  // and damaged namespace records remain evidence of a prior installation.
+  for(let page=0;page<bytes.length;page+=4096){
+    for(let off=page+64;off+32<=Math.min(page+4096,bytes.length);off+=32){
+      const entry=bytes.subarray(off,off+32);
+      if(entry[0]===0&&entry[1]===1&&text(entry.subarray(8,24))==='auth')return true;
+    }
+  }
+  return false;
+}
 export async function recognizeFactory(loader,table){
   if(!matchesFactoryTable(table))return false;
   for(const address of [0x10000,0x650000]){
@@ -32,11 +47,11 @@ export async function recognizeFactory(loader,table){
   // Refuse residual Link data even when another program replaced its table.
   // Search bytes conservatively, including deleted NVS entries; false positives
   // stop installation rather than risk removing a prior Link identity.
-  const markers=['link_cloud','linkdisplay','emberconn','emberid','ember-link','auth\0'].map(s=>new TextEncoder().encode(s));
+  const markers=['link_cloud','linkdisplay','emberconn','emberid','ember-link'].map(s=>new TextEncoder().encode(s));
   for(const [address,size] of [[0x9000,0x7000],[0x620000,0x10000],[0x20000,256],[0x320000,256]]){
     const bytes=await readFlashVerified(loader,address,size);
     try{
-      if(markers.some(marker=>bytes.some((_,i)=>i+marker.length<=bytes.length&&marker.every((v,j)=>bytes[i+j]===v))))return false;
+      if(hasAuthNamespace(bytes)||markers.some(marker=>bytes.some((_,i)=>i+marker.length<=bytes.length&&marker.every((v,j)=>bytes[i+j]===v))))return false;
     }finally{bytes.fill(0);}
   }
   return true;

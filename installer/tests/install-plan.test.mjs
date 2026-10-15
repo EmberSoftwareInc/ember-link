@@ -138,6 +138,47 @@ function factoryLoader(){
  l.erases=0;l.chip={readMac:async()=> '50:78:7d:2b:90:6c'};
  l.eraseFlash=async()=>{l.erases++;l.flash.fill(255);};return l;
 }
+function factoryNvsEntry(loader,{key,namespace=0,address=0x9000,slot=0,deleted=false,corrupt=false}){
+ const page=loader.flash.subarray(address,address+4096);
+ u32(page,0,0xfffffffe);u32(page,4,0);page[8]=0xfe;u32(page,28,crc32(page.subarray(4,28)));
+ page[32+(slot>>2)]=(page[32+(slot>>2)]&~(3<<((slot%4)*2)))|((deleted?0:2)<<((slot%4)*2));
+ const h=page.subarray(64+slot*32,96+slot*32);
+ h[0]=namespace;h[1]=1;h[2]=1;h[3]=255;
+ h.fill(0,8,24);h.set(new TextEncoder().encode(key),8);h[24]=1;
+ u32(h,4,crc32(h.subarray(8),crc32(h.subarray(0,4))));if(corrupt)h[4]^=1;
+}
+test('stock Wi-Fi sta.minauth key reaches explicit first-install approval without writing',async()=>{
+ const l=factoryLoader();let prompts=0;
+ factoryNvsEntry(l,{key:'wifi'});
+ factoryNvsEntry(l,{key:'sta.minauth',namespace:1,slot:1});
+ await assert.rejects(installPreserving(l,files(),manifest,{confirmFirstInstall:async()=>{prompts++;return false;}}),/cancelled/);
+ assert.equal(prompts,1);assert.equal(l.erases,0);assert.equal(l.writes,0);
+});
+test('stock Wi-Fi settings allow a verified first installation after explicit approval',async()=>{
+ const l=factoryLoader();let prompts=0;
+ factoryNvsEntry(l,{key:'wifi'});
+ factoryNvsEntry(l,{key:'sta.minauth',namespace:1,slot:1});
+ const plan=await installPreserving(l,files(),manifest,{confirmFirstInstall:async()=>{
+  prompts++;assert.equal(l.erases,0);assert.equal(l.writes,0);return true;
+ }});
+ assert.equal(plan.mode,'first-install');assert.equal(prompts,1);assert.equal(l.erases,1);assert.equal(l.writes,1);
+ for(const [a,size] of PRESERVED)assert.ok(l.flash.subarray(a,a+size).every(v=>v===255));
+});
+test('residual auth namespaces still block first install, including deleted and corrupt entries',async()=>{
+ for(const address of [0x9000,0xd000,0x620000,0x62f000])for(const slot of [0,125])for(const state of [{},{deleted:true},{corrupt:true},{deleted:true,corrupt:true}]){
+  const l=factoryLoader();let prompts=0;
+  factoryNvsEntry(l,{key:'auth',address,slot,...state});
+  await assert.rejects(installPreserving(l,files(),manifest,{confirmFirstInstall:async()=>{prompts++;return true;}}));
+  assert.equal(prompts,0);assert.equal(l.erases,0);assert.equal(l.writes,0);
+ }
+});
+test('auth namespace introduced during first-install approval blocks the recheck before erasure',async()=>{
+ const l=factoryLoader();
+ await assert.rejects(installPreserving(l,files(),manifest,{confirmFirstInstall:async()=>{
+  factoryNvsEntry(l,{key:'auth',deleted:true});return true;
+ }}));
+ assert.equal(l.erases,0);assert.equal(l.writes,0);
+});
 test('recognized preloaded firmware requires explicit approval and identifies the connected board',async()=>{
  for(const approval of [undefined,async()=>false,async()=> 'true']){
   const l=factoryLoader();await assert.rejects(installPreserving(l,files(),manifest,{confirmFirstInstall:approval}),/cancelled/);
